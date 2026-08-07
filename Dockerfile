@@ -11,7 +11,7 @@
 # multi-architecture rejoue toute la compilation front sous QEMU pour arm64 :
 # plusieurs minutes d'émulation pour produire des fichiers JavaScript et CSS
 # rigoureusement identiques, puisqu'ils ne dépendent d'aucune architecture.
-FROM --platform=$BUILDPLATFORM node:24-alpine AS assets
+FROM --platform=$BUILDPLATFORM node:25-alpine AS assets
 
 WORKDIR /build
 COPY package.json package-lock.json ./
