@@ -30,6 +30,7 @@ data/
 .git/
 .gitignore
 .github/
+.trivyignore.yaml
 .idea/
 .vscode/
 .DS_Store

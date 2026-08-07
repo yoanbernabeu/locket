@@ -1,0 +1,42 @@
+# Exceptions d'analyse de vulnérabilités.
+#
+# RÈGLE : rien n'entre ici sans trois choses — la raison pour laquelle
+# l'alerte ne concerne pas Locket, une date d'expiration, et une signature.
+# Une exception sans échéance n'est pas une exception, c'est un garde-fou
+# désactivé qu'on redécouvre deux ans plus tard.
+#
+# À l'expiration, Trivy fait de nouveau échouer la chaîne. Deux issues alors :
+# l'image de base a été corrigée entre-temps et la ligne se supprime, ou elle
+# ne l'a pas été et il faut réexaminer le raisonnement — pas repousser la date
+# machinalement.
+
+vulnerabilities:
+  # Toutes deux vivent dans le binaire Go de FrankenPHP, donc dans Caddy et ses
+  # dépendances — pas dans le code de Locket, ni dans ses paquets Composer ou
+  # npm, qui ressortent à zéro. Elles sont corrigées en amont mais pas encore
+  # reprises dans dunglas/frankenphp:1-php8.4-alpine : nous ne disposons
+  # d'aucun moyen de les corriger nous-mêmes.
+
+  - id: GHSA-r277-6w6q-xmqw
+    paths:
+      - usr/local/bin/frankenphp
+    statement: >-
+      kin-openapi — ValidationHandler.Load() bascule en autorisation ouverte
+      quand aucune fonction d'authentification n'est fournie. Le chemin
+      vulnérable est le handler de validation OpenAPI de Caddy. Le Caddyfile de
+      Locket ne déclare que frankenphp, mercure, php_server, root, encode,
+      header et log : aucun handler OpenAPI n'est instancié, la fonction n'est
+      jamais appelée. Corrigé en kin-openapi 0.144.0, non encore repris par
+      l'image de base.
+    expired_at: 2026-11-07
+
+  - id: GHSA-hrxh-6v49-42gf
+    paths:
+      - usr/local/bin/frankenphp
+    statement: >-
+      gRPC-Go — failles xDS RBAC et HTTP/2. xDS est le protocole de découverte
+      de services d'Envoy ; Locket ne configure aucun serveur xDS, aucune
+      politique RBAC gRPC, et n'expose aucun point d'entrée gRPC. Le serveur ne
+      sert que du HTTP et le hub Mercure. Corrigé en grpc-go 1.82.1, non encore
+      repris par l'image de base.
+    expired_at: 2026-11-07
