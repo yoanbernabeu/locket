@@ -1,0 +1,20 @@
+# Surcharge de construction locale.
+#
+# `compose.yaml` tire une image publiée : c'est ce qu'il faut pour déployer, et
+# ce n'est pas ce qu'il faut pour développer ou contribuer. Ce fichier rétablit
+# la construction depuis les sources sans toucher au fichier principal.
+#
+#     docker compose -f compose.yaml -f compose.build.yaml up -d --build
+#
+# `pull_policy` doit être remis à `missing` : hérité de `compose.yaml`, il vaut
+# `always` et Docker irait chercher au registre l'image qu'on vient de
+# construire, écrasant le travail en cours par la dernière version publiée.
+
+services:
+  locket:
+    build:
+      context: .
+      args:
+        VERSION: locale
+    image: locket:locale
+    pull_policy: missing

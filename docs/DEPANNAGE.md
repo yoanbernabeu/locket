@@ -3,6 +3,12 @@
 Les situations réellement rencontrées, classées par symptôme. Chaque entrée donne la
 cause, la vérification, puis la solution.
 
+> **Les commandes passent par `console`, jamais par `php bin/console`.** Les secrets
+> de l'instance vivent dans le volume et sont chargés au démarrage du conteneur. Un
+> `docker compose exec` ouvre un shell neuf, qui ne les a pas : `php bin/console`
+> échoue alors sur « MERCURE_JWT_SECRET porte encore la valeur d'exemple », quelle que
+> soit la commande demandée. L'enveloppe `console` les relit avant de lancer Symfony.
+
 ---
 
 ## Installation
@@ -89,7 +95,7 @@ réinvitant** comme membre ordinaire, avant de vous promouvoir à nouveau.
 S'il n'y en a pas, il faut intervenir sur le serveur :
 
 ```bash
-docker compose exec locket php bin/console doctrine:query:sql \
+docker compose exec locket console doctrine:query:sql \
   "UPDATE user SET is_admin = 1 WHERE pseudo = 'un-autre-membre'"
 ```
 
@@ -130,7 +136,7 @@ docker compose restart
 Vérifiez aussi que les notifications ne se sont pas empilées en attente :
 
 ```bash
-docker compose exec locket php bin/console messenger:stats
+docker compose exec locket console messenger:stats
 ```
 
 ### Les notifications affichent « Nouveau message » sans le contenu
@@ -224,8 +230,8 @@ Le volume est censé se stabiliser : la rétention à 7 jours borne le stockage.
 pas le cas, la purge ne s'exécute pas.
 
 ```bash
-docker compose exec locket php bin/console debug:scheduler   # la purge doit y figurer
-docker compose exec locket php bin/console locket:purge      # exécution manuelle
+docker compose exec locket console debug:scheduler   # la purge doit y figurer
+docker compose exec locket console locket:purge      # exécution manuelle
 ```
 
 ---
@@ -238,7 +244,7 @@ Cinq commandes qui donnent l'état complet d'une instance :
 docker compose ps                                            # conteneur sain ?
 docker compose exec locket ps -o args                        # serveur + consommateur ?
 docker compose logs --tail=100 | grep -iE "error|critical"   # erreurs récentes ?
-docker compose exec locket php bin/console debug:scheduler   # purge planifiée ?
+docker compose exec locket console debug:scheduler   # purge planifiée ?
 curl -sI https://locket.mafamille.fr/health                  # application joignable ?
 ```
 

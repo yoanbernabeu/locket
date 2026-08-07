@@ -5,7 +5,13 @@
 # est embarqué.
 
 # --- Étape 1 : construction des bundles front ---
-FROM node:24-alpine AS assets
+#
+# `--platform=$BUILDPLATFORM` épingle cette étape sur l'architecture de la
+# MACHINE QUI CONSTRUIT, pas sur celle qui est visée. Sans cela, une image
+# multi-architecture rejoue toute la compilation front sous QEMU pour arm64 :
+# plusieurs minutes d'émulation pour produire des fichiers JavaScript et CSS
+# rigoureusement identiques, puisqu'ils ne dépendent d'aucune architecture.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS assets
 
 WORKDIR /build
 COPY package.json package-lock.json ./
@@ -20,7 +26,9 @@ RUN npm run build \
  && node bin/generate-icons.mjs
 
 # --- Étape 2 : dépendances PHP ---
-FROM composer:2 AS vendor
+# Même raison qu'à l'étape précédente : un paquet Composer est du PHP, donc du
+# texte. Rien ici ne dépend de l'architecture visée.
+FROM --platform=$BUILDPLATFORM composer:2 AS vendor
 
 WORKDIR /app
 COPY composer.json composer.lock symfony.lock ./
@@ -38,9 +46,26 @@ RUN composer dump-autoload --no-dev --optimize
 # --- Étape 3 : image finale ---
 FROM dunglas/frankenphp:1-php8.4-alpine
 
+# Traçabilité de l'image. Ces valeurs sont renseignées par la chaîne
+# d'intégration ; leurs défauts permettent une construction locale sans argument.
+# Elles répondent à la question qu'on se pose toujours devant une instance qui se
+# comporte mal : « quelle version tourne ici, et de quel commit vient-elle ? »
+ARG VERSION=dev
+ARG REVISION=inconnue
+ARG CREATED=
+
 LABEL org.opencontainers.image.title="Locket" \
       org.opencontainers.image.description="Messagerie familiale chiffrée de bout en bout, éphémère et auto-hébergeable" \
-      org.opencontainers.image.licenses="AGPL-3.0-or-later"
+      org.opencontainers.image.licenses="AGPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/yoanbernabeu/locket" \
+      org.opencontainers.image.documentation="https://github.com/yoanbernabeu/locket/blob/main/docs/INSTALLATION.md" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.created="${CREATED}"
+
+# Reprise en variable d'environnement : un `docker exec … env | grep VERSION`
+# répond alors sans avoir à inspecter les métadonnées de l'image.
+ENV LOCKET_VERSION="${VERSION}"
 
 RUN install-php-extensions \
       pdo_sqlite \
@@ -72,6 +97,7 @@ COPY .env ./
 COPY Caddyfile /etc/frankenphp/Caddyfile
 COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
+COPY docker/console.sh /usr/local/bin/console
 
 COPY --from=assets /build/public/build ./public/build
 COPY --from=assets /build/public/sw.js ./public/sw.js
@@ -111,7 +137,7 @@ RUN addgroup -g 1000 -S locket \
  && adduser -u 1000 -S -D -G locket locket \
  && mkdir -p /data/media /data/sessions /data/caddy /config /app/var \
  && chown -R locket:locket /app /data /config \
- && chmod +x /usr/local/bin/entrypoint \
+ && chmod +x /usr/local/bin/entrypoint /usr/local/bin/console \
  && setcap CAP_NET_BIND_SERVICE=+ep /usr/local/bin/frankenphp
 
 USER locket

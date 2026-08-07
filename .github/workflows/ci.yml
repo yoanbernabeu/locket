@@ -1,0 +1,120 @@
+# Contrôles de qualité.
+#
+# Ce workflow est appelé de deux façons :
+#   - directement, sur chaque pull request ;
+#   - par `image.yml` via `workflow_call`, qui refuse de publier une image dont
+#     les contrôles n'ont pas passé.
+#
+# C'est volontairement le MÊME fichier dans les deux cas : une chaîne où les
+# tests de la publication diffèrent de ceux de la revue finit toujours par
+# publier ce qu'elle n'a pas vérifié.
+
+name: Contrôles
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+# Le jeton par défaut ne doit rien pouvoir écrire : ces travaux se contentent de
+# lire le dépôt.
+permissions:
+  contents: read
+
+concurrency:
+  group: controles-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  PHP_VERSION: '8.4'
+
+jobs:
+  front:
+    name: Front — lint, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests unitaires
+        run: npm test
+
+      # La construction fait partie des contrôles : une erreur de bundling ne se
+      # voit ni au lint ni aux tests, qui lisent les sources et non le paquet
+      # produit. Elle n'apparaîtrait qu'à la construction de l'image, bien plus
+      # tard et bien plus lentement.
+      - name: Construction des bundles
+        run: npm run build
+
+  back:
+    name: Back — PHPUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo_sqlite, intl, sodium, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Empreinte du cache Composer
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-
+
+      - name: Installer les dépendances
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # La suite crée elle-même sa base SQLite : aucun service à démarrer, aucune
+      # migration à jouer au préalable.
+      - name: Tests unitaires et fonctionnels
+        run: php bin/phpunit
+
+  audit:
+    name: Audit des dépendances
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+          tools: composer:v2
+
+      # `--omit=dev` : une faille dans Vite ou ESLint n'atteint jamais une
+      # instance familiale, ces paquets ne sortent pas de la machine de
+      # construction. Bloquer dessus reviendrait à crier au loup en permanence et
+      # à apprendre à l'équipe à ignorer l'alerte.
+      - name: Audit npm (dépendances d'exécution)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit Composer
+        run: composer audit --no-dev --locked

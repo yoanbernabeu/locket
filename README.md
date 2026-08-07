@@ -1,5 +1,8 @@
 # Locket
 
+[![Image](https://github.com/yoanbernabeu/locket/actions/workflows/image.yml/badge.svg)](https://github.com/yoanbernabeu/locket/actions/workflows/image.yml)
+[![Licence AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-8b3e13)](LICENSE)
+
 **La messagerie de la famille.** Chiffrée de bout en bout, effacée au bout de 7 jours,
 hébergée chez vous.
 
@@ -22,8 +25,7 @@ Il vous faut une machine accessible depuis Internet, un nom de domaine pointant 
 et Docker.
 
 ```bash
-git clone https://github.com/votre-compte/locket.git
-cd locket
+curl -O https://raw.githubusercontent.com/yoanbernabeu/locket/main/compose.yaml
 
 SERVER_NAME=locket.mafamille.fr ADMIN_EMAIL=vous@example.com docker compose up -d
 ```
@@ -32,7 +34,15 @@ Ouvrez ensuite `https://locket.mafamille.fr/` : un assistant vous guide pour cr�
 espace et votre compte administrateur.
 
 Il n'y a **rien d'autre à installer** — ni base de données, ni serveur de cache, ni reverse
-proxy. Le certificat HTTPS est obtenu automatiquement.
+proxy, ni même le code source. L'image est tirée de `ghcr.io/yoanbernabeu/locket`, publiée
+pour `amd64` et `arm64` (un Raspberry Pi convient). Le certificat HTTPS est obtenu
+automatiquement.
+
+Tant que le projet est en `0.x`, épinglez la version plutôt que de suivre `latest` :
+
+```bash
+LOCKET_VERSION=0.1.0-alpha.1 docker compose up -d
+```
 
 Le [guide d'installation](docs/INSTALLATION.md) détaille chaque étape, y compris la mise
 en place derrière un reverse proxy existant. Le [guide de dépannage](docs/DEPANNAGE.md)
@@ -156,6 +166,33 @@ symfony server:start
 npm test           # cryptographie, stockage, service worker, interface
 php bin/phpunit    # domaine, API, sécurité, purge
 npm run test:e2e   # parcours complets dans un vrai navigateur
+```
+
+### Construire l'image localement
+
+`compose.yaml` tire l'image publiée. Pour construire depuis les sources :
+
+```bash
+docker compose -f compose.yaml -f compose.build.yaml up -d --build
+```
+
+### Intégration continue
+
+| Workflow | Déclencheur | Rôle |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | pull request | Lint, tests front et back, audit des dépendances |
+| [`image.yml`](.github/workflows/image.yml) | `main`, tags `v*` | Contrôles, test de fumée, publication multi-arch, analyse de vulnérabilités, release |
+
+Le **test de fumée** démarre réellement le conteneur et vérifie ce qu'aucun test unitaire
+ne peut voir : que `/health` répond, que le consommateur Messenger tourne (sans lui, ni
+notifications ni purge, et aucune erreur nulle part), que la purge est planifiée et que
+la base est en WAL. Rien n'est publié si l'image ne démarre pas.
+
+Les images portent une **nomenclature des matériaux (SBOM)** et une **attestation de
+provenance** :
+
+```bash
+docker buildx imagetools inspect ghcr.io/yoanbernabeu/locket:latest
 ```
 
 La couche cryptographique est couverte par des tests qui vérifient les **exigences

@@ -1,0 +1,304 @@
+# Construction et publication de l'image de conteneur.
+#
+# Deux canaux, deux usages :
+#
+#   push sur main   →  ghcr.io/yoanbernabeu/locket:edge
+#                      La version de développement. Elle bouge à chaque fusion et
+#                      n'est destinée qu'aux essais.
+#
+#   tag vX.Y.Z…     →  ghcr.io/yoanbernabeu/locket:X.Y.Z (+ X.Y, X, latest)
+#                      Une version publiée, immuable, accompagnée d'une release
+#                      GitHub. C'est ce qu'une famille installe.
+#
+# Rien n'est publié sans que les contrôles ET le test de fumée soient passés :
+# une image qui ne démarre pas ne doit jamais atteindre le registre.
+
+name: Image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  # On annule volontiers une construction de `main` rendue obsolète par la
+  # suivante. Jamais celle d'un tag : une publication interrompue laisserait le
+  # registre dans un état à moitié écrit.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  REGISTRE: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  controles:
+    name: Contrôles
+    uses: ./.github/workflows/ci.yml
+
+  fumee:
+    name: Test de fumée du conteneur
+    needs: controles
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Construction pour la seule architecture du runner, chargée dans le démon
+      # local. Elle n'est pas publiée : elle sert uniquement à vérifier que
+      # l'image DÉMARRE. Les couches produites ici alimentent le cache et sont
+      # réutilisées telles quelles par la publication.
+      - name: Construire l'image (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: locket:fumee
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Ce test attrape la classe de pannes que ni le lint, ni PHPUnit, ni Vitest
+      # ne peuvent voir : un fichier oublié dans le Dockerfile, une directive
+      # Caddy invalide, une migration qui ne s'applique pas. Le guide de dépannage
+      # documente deux incidents réels de cette nature (PathException sur `.env`,
+      # `cors_origins` sans argument) — tous deux auraient été arrêtés ici.
+      - name: Démarrer le conteneur
+        run: |
+          docker run -d --name locket-fumee \
+            -e SERVER_NAME=:80 \
+            -p 8080:80 \
+            locket:fumee
+
+      - name: Attendre que l'application réponde
+        run: |
+          for tentative in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/health >/dev/null 2>&1; then
+              echo "✓ /health répond après ${tentative}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "✗ /health n'a jamais répondu"
+          docker logs locket-fumee
+          exit 1
+
+      # Sans le consommateur Messenger, aucune notification n'est envoyée et la
+      # purge des 7 jours ne s'exécute jamais — sans qu'aucune erreur n'apparaisse
+      # nulle part. C'est la panne silencieuse la plus coûteuse du produit :
+      # l'application a l'air de marcher, et sa promesse centrale ne tient plus.
+      - name: Vérifier que les deux processus tournent
+        run: |
+          processus=$(docker exec locket-fumee ps -o args)
+          echo "$processus"
+          echo "$processus" | grep -q frankenphp || { echo "✗ serveur absent"; exit 1; }
+          echo "$processus" | grep -q messenger  || { echo "✗ consommateur Messenger absent"; exit 1; }
+          echo "✓ serveur et consommateur présents"
+
+      # La rétention est bornée par une tâche planifiée. Si elle n'est pas
+      # enregistrée, les messages ne disparaissent jamais.
+      # Via `console` et non `php bin/console` : un `docker exec` ouvre un shell
+      # neuf, qui n'a pas les secrets chargés par l'entrypoint. L'enveloppe les
+      # relit depuis le volume. C'est aussi ce que vérifie implicitement cette
+      # étape — que la commande documentée dans le guide de dépannage fonctionne.
+      - name: Vérifier que la purge est planifiée
+        run: |
+          docker exec locket-fumee console debug:scheduler | tee /tmp/scheduler.txt
+          grep -qi purge /tmp/scheduler.txt || { echo "✗ purge non planifiée"; exit 1; }
+          echo "✓ purge planifiée"
+
+      # La base doit être en WAL : sans cela, le consommateur Messenger et le
+      # serveur se verrouillent mutuellement dès qu'ils écrivent en même temps.
+      - name: Vérifier le mode journal de la base
+        run: |
+          mode=$(docker exec locket-fumee php -r \
+            '$d = new PDO("sqlite:/data/locket.db"); echo $d->query("PRAGMA journal_mode")->fetchColumn();')
+          echo "journal_mode = $mode"
+          [ "$mode" = "wal" ] || { echo "✗ la base n'est pas en WAL"; exit 1; }
+
+      - name: Journaux du conteneur en cas d'échec
+        if: failure()
+        run: docker logs locket-fumee
+
+      - name: Arrêter le conteneur
+        if: always()
+        run: docker rm -f locket-fumee || true
+
+  publication:
+    name: Publier sur GHCR
+    needs: fumee
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      # Exigée par les attestations de provenance rattachées à l'image.
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # QEMU n'est nécessaire que pour arm64 : les étapes front et Composer du
+      # Dockerfile sont épinglées sur l'architecture de construction et ne passent
+      # jamais par l'émulation.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authentification au registre
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRE }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculer les étiquettes
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=edge,branch=main
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=sha,format=long
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+          # `latest` est posé explicitement plutôt que par `flavor: latest=auto`.
+          # `auto` l'écarte sur toute préversion — ce qui est la bonne règle une
+          # fois qu'une version stable existe, mais laisserait aujourd'hui
+          # `docker compose up -d` sans image à tirer, le projet n'ayant publié
+          # que des alphas. Pendant la série 0.x, `latest` suit donc la dernière
+          # version publiée, préversions comprises. À la 1.0.0, cette ligne
+          # redevient `flavor: latest=auto`.
+          flavor: latest=false
+          labels: |
+            org.opencontainers.image.title=Locket
+            org.opencontainers.image.description=Messagerie familiale chiffrée de bout en bout, éphémère et auto-hébergeable
+
+      - name: Construire et publier
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ github.sha }}
+            CREATED=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Nomenclature des matériaux et attestation de provenance : elles
+          # permettent de répondre, après coup, à « que contient cette image et
+          # d'où vient-elle ? » sans avoir à la faire confiance sur parole.
+          sbom: true
+          provenance: mode=max
+
+  analyse:
+    name: Analyse de vulnérabilités
+    needs: publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Authentification au registre
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRE }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Trivy est installé en dernière version volontairement : un scanner de
+      # vulnérabilités épinglé embarque une base de signatures figée, ce qui va à
+      # l'encontre de sa raison d'être. C'est l'une des rares dépendances qu'on a
+      # intérêt à laisser suivre l'amont.
+      - name: Installer Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      # `--ignore-unfixed` n'est pas une complaisance : sans lui, la moindre
+      # alerte sans correctif disponible dans l'image de base bloquerait toutes
+      # les publications, indéfiniment et sans action possible. On bloque sur ce
+      # qui peut être corrigé.
+      - name: Analyser l'image publiée
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress \
+            "${{ env.IMAGE }}@${{ needs.publication.outputs.digest }}"
+
+  release:
+    name: Publier la release
+    needs: [publication, analyse]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Toute étiquette portant un tiret est une préversion au sens SemVer
+      # (0.1.0-alpha.1). GitHub doit le savoir : une préversion marquée comme
+      # publication stable finit installée par quelqu'un qui ne l'avait pas
+      # demandé.
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.publication.outputs.version }}
+          DIGEST: ${{ needs.publication.outputs.digest }}
+        run: |
+          preversion=""
+          case "$TAG" in *-*) preversion="--prerelease" ;; esac
+
+          cat > /tmp/notes.md <<NOTES
+          ## Installation
+
+          \`\`\`bash
+          LOCKET_VERSION=$VERSION \\
+          SERVER_NAME=locket.mafamille.fr \\
+          ADMIN_EMAIL=vous@example.com \\
+          docker compose up -d
+          \`\`\`
+
+          Le [guide d'installation](https://github.com/${{ github.repository }}/blob/$TAG/docs/INSTALLATION.md)
+          détaille chaque étape.
+
+          ## Image
+
+          \`\`\`
+          ${{ env.IMAGE }}:$VERSION
+          \`\`\`
+
+          - Architectures : \`linux/amd64\`, \`linux/arm64\`
+          - Empreinte : \`$DIGEST\`
+          - Nomenclature des matériaux (SBOM) et attestation de provenance jointes à l'image
+          NOTES
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file /tmp/notes.md \
+            --generate-notes \
+            $preversion

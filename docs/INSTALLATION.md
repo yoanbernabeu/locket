@@ -47,19 +47,30 @@ certificat tant que ce n'est pas le cas.
 
 ## 3. Installer
 
-```bash
-git clone https://github.com/votre-compte/locket.git
-cd locket
+Un seul fichier suffit : il n'y a pas de code source à récupérer, l'image est publiée.
 
+```bash
+mkdir locket && cd locket
+curl -O https://raw.githubusercontent.com/yoanbernabeu/locket/main/compose.yaml
+
+LOCKET_VERSION=0.1.0-alpha.1 \
 SERVER_NAME=locket.mafamille.fr \
 ADMIN_EMAIL=vous@example.com \
 LOCKET_INSTANCE_NAME="Famille Dupont" \
 docker compose up -d
 ```
 
-Le premier démarrage prend une à deux minutes : l'image se construit, les secrets de
-l'instance sont générés, le schéma de base est créé, les clés de notification sont
-émises, et Caddy obtient le certificat.
+> **Épinglez la version tant que le projet est en `0.x`.** Sans `LOCKET_VERSION`,
+> l'instance suit `latest`, qui pointe sur la dernière version publiée — préversions
+> comprises. Choisir soi-même le moment d'une montée de version évite de découvrir un
+> changement un dimanche soir.
+>
+> Les versions disponibles sont listées sur la
+> [page des releases](https://github.com/yoanbernabeu/locket/releases).
+
+Le premier démarrage prend une minute environ : l'image est tirée du registre, les
+secrets de l'instance sont générés, le schéma de base est créé, les clés de notification
+sont émises, et Caddy obtient le certificat.
 
 Suivez l'opération :
 
@@ -166,16 +177,31 @@ Une sauvegarde hebdomadaire suffit largement.
 
 ```bash
 cd locket
-git pull
-docker compose build
-docker compose up -d
+
+# Version épinglée : indiquez la nouvelle.
+LOCKET_VERSION=0.1.0-alpha.2 docker compose up -d
+
+# Si vous suivez `latest` :
+docker compose pull && docker compose up -d
 ```
 
 Les migrations de base s'appliquent automatiquement au démarrage. Les sessions et les
 secrets survivent : personne n'est déconnecté.
 
+Sauvegardez **avant** toute montée de version (section 6) : c'est le seul moment où une
+migration peut mal se passer, et le seul où revenir en arrière a un sens.
+
 Lisez les notes de version avant une montée de version majeure — un changement de format
 du protocole peut exiger que tous les appareils se mettent à jour en même temps.
+
+### Revenir à la version précédente
+
+```bash
+LOCKET_VERSION=0.1.0-alpha.1 docker compose up -d
+```
+
+Cela ne défait pas les migrations déjà appliquées. Si la nouvelle version en a introduit
+une, restaurez aussi la sauvegarde prise avant la mise à jour.
 
 ---
 
@@ -183,6 +209,7 @@ du protocole peut exiger que tous les appareils se mettent à jour en même temp
 
 | Variable | Défaut | Rôle |
 |---|---|---|
+| `LOCKET_VERSION` | `latest` | Version de l'image à déployer. À épingler en `0.x`. |
 | `SERVER_NAME` | `localhost` | Nom de domaine public. Détermine le certificat TLS. |
 | `ADMIN_EMAIL` | — | Adresse transmise à Let's Encrypt pour les avis d'expiration. |
 | `LOCKET_INSTANCE_NAME` | `Locket` | Nom affiché de la famille. |
@@ -255,7 +282,7 @@ docker compose exec locket php -r \
   '$d=new PDO("sqlite:/data/locket.db"); echo $d->query("PRAGMA journal_mode")->fetchColumn(),"\n";'
 
 # 5. La purge est planifiée
-docker compose exec locket php bin/console debug:scheduler
+docker compose exec locket console debug:scheduler
 ```
 
 Le point 2 mérite une attention particulière : **sans le consommateur de tâches, aucune

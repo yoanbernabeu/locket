@@ -6,11 +6,23 @@
 #
 # Le certificat TLS est obtenu automatiquement par Caddy. Aucun autre service
 # n'est nécessaire : ni base de données, ni serveur de cache, ni reverse proxy.
+#
+# L'image est TIRÉE d'un registre, elle n'est pas construite ici : une famille
+# n'a pas à disposer d'une chaîne de construction Node et PHP sur son serveur, ni
+# à attendre plusieurs minutes de compilation pour une mise à jour. Les images
+# sont publiées pour amd64 et arm64 — un Raspberry Pi convient.
+#
+# Pour construire depuis les sources (contribution, ou modification locale) :
+#
+#     docker compose -f compose.yaml -f compose.build.yaml up -d --build
 
 services:
   locket:
-    build: .
-    image: locket:latest
+    # `latest` suit la dernière version publiée. Épinglez une version précise
+    # (LOCKET_VERSION=0.1.0-alpha.1) si vous préférez décider vous-même du moment
+    # des mises à jour — c'est recommandé tant que le projet est en 0.x.
+    image: ghcr.io/yoanbernabeu/locket:${LOCKET_VERSION:-latest}
+    pull_policy: always
     restart: unless-stopped
 
     environment:
