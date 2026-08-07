@@ -29,6 +29,31 @@ export function initials(name) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+/**
+ * Teinte propre à une personne, dérivée de son nom.
+ *
+ * Une liste où tous les médaillons sont du même terracotta ne se parcourt pas :
+ * l'œil doit relire chaque ligne. Une teinte stable par personne rend Mamie
+ * reconnaissable à sa couleur avant même d'avoir lu son prénom.
+ *
+ * Le tirage est volontairement borné aux chaudes (ambre → rouge brique →
+ * olive), jamais au bleu ni au violet : une seule famille chromatique, sinon
+ * la liste tourne au nuancier. La saturation et la clarté restent fixées par
+ * la feuille de style, qui seule connaît le thème en cours — ici on ne décide
+ * que de l'angle.
+ */
+export function teinte(name) {
+  const texte = String(name ?? '');
+  let empreinte = 0;
+  for (let i = 0; i < texte.length; i++) {
+    empreinte = (empreinte * 31 + texte.charCodeAt(i)) % 360;
+  }
+  // 8 crans de 5° depuis 10° : de la brique à l'ambre, sans jamais atteindre
+  // le jaune — au-delà de 50°, la teinte bascule dans l'olive et sort de la
+  // famille chaude qui tient tout le produit.
+  return 10 + (empreinte % 8) * 5;
+}
+
 /** Heure d'envoi, au format court du quotidien. */
 export function formatTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -272,7 +297,7 @@ export function renderConversationList({ conversations, instanceName, isAdmin })
       const nom = conversation.title ?? 'Conversation';
       return `
       <button class="conversation" data-action="ouvrir-conversation" data-id="${escapeHtml(conversation.id)}">
-        <span class="avatar" data-type="${escapeHtml(conversation.type)}" aria-hidden="true">${conversation.type === 'group' ? '' : escapeHtml(initials(nom))}</span>
+        <span class="avatar" data-type="${escapeHtml(conversation.type)}" style="--teinte:${teinte(nom)}" aria-hidden="true">${conversation.type === 'group' ? '' : escapeHtml(initials(nom))}</span>
         <span class="conversation-corps">
           <span class="conversation-nom">${escapeHtml(nom)}</span>
           ${conversation.preview ? `<span class="conversation-apercu">${escapeHtml(conversation.preview)}</span>` : ''}
@@ -281,6 +306,9 @@ export function renderConversationList({ conversations, instanceName, isAdmin })
     })
     .join('');
 
+  // Le pied de liste n'est pas décoratif : sous trois conversations, l'écran
+  // était aux deux tiers vide, et la seule promesse qui distingue Locket
+  // n'était écrite nulle part sur l'écran d'accueil.
   return `
     ${renderHeader({ title: instanceName, showSettings: true, isAdmin })}
     <div class="liste-conversations">
@@ -292,6 +320,7 @@ export function renderConversationList({ conversations, instanceName, isAdmin })
           <span class="conversation-apercu">Écrire à une seule personne</span>
         </span>
       </button>
+      <p class="pied-liste">Tout ce qui s'écrit ici s'efface au bout de 7 jours.</p>
     </div>`;
 }
 
@@ -313,7 +342,7 @@ export function renderMemberPicker({ members, instanceName }) {
     .map(
       (m) => `
       <button class="conversation" data-action="ouvrir-direct" data-id="${escapeHtml(m.id)}">
-        <span class="avatar" aria-hidden="true">${escapeHtml(initials(m.displayName ?? m.pseudo))}</span>
+        <span class="avatar" style="--teinte:${teinte(m.displayName ?? m.pseudo)}" aria-hidden="true">${escapeHtml(initials(m.displayName ?? m.pseudo))}</span>
         <span class="conversation-corps">
           <span class="conversation-nom">${escapeHtml(m.displayName ?? m.pseudo)}</span>
           <span class="conversation-apercu">Conversation privée</span>

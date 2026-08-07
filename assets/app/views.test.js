@@ -13,6 +13,7 @@ import {
   renderPendingApproval,
   renderMemberPicker,
   renderMessages,
+  teinte,
 } from './views.js';
 
 const HEURE = 3600_000;
@@ -332,5 +333,42 @@ describe('groupement des messages consécutifs', () => {
   it('introduit un séparateur de jour', () => {
     const html = renderMessages([base({ id: 'm1' })], MAINTENANT);
     expect(html).toContain('separateur-jour');
+  });
+});
+
+describe('teinte des médaillons', () => {
+  // La liste des conversations ne se parcourt que si chaque personne garde sa
+  // couleur : un tirage instable la rendrait illisible d'un rendu à l'autre.
+  it('donne toujours la même teinte au même nom', () => {
+    expect(teinte('Mamie')).toBe(teinte('Mamie'));
+    expect(teinte('Mamie Jeanne')).toBe(teinte('Mamie Jeanne'));
+  });
+
+  // La contrainte de direction artistique, et la seule qui puisse régresser
+  // sans que rien ne casse : au-delà de 50°, la teinte bascule dans l'olive et
+  // sort de la famille chaude qui tient tout le produit.
+  it('reste dans les chaudes, quel que soit le nom', () => {
+    const noms = [
+      'Mamie', 'Papi', 'Léa', 'Tonton Marc', 'Zoé', 'A', '',
+      'Jean-Baptiste', 'Éléonore', 'Famille Test', '한글', '😀',
+    ];
+    for (const nom of noms) {
+      const angle = teinte(nom);
+      expect(angle).toBeGreaterThanOrEqual(10);
+      expect(angle).toBeLessThanOrEqual(50);
+    }
+  });
+
+  it('sépare bien les prénoms d\'une même famille', () => {
+    // Sans distinction, tous les médaillons seraient du même terracotta et la
+    // couleur ne servirait à rien.
+    const angles = new Set(['Mamie', 'Papi', 'Léa', 'Marc'].map(teinte));
+    expect(angles.size).toBeGreaterThan(1);
+  });
+
+  it('ne rend jamais NaN sur une entrée absente', () => {
+    // `--teinte:NaN` casserait silencieusement toutes les couleurs hsl().
+    expect(Number.isFinite(teinte(undefined))).toBe(true);
+    expect(Number.isFinite(teinte(null))).toBe(true);
   });
 });

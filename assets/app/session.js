@@ -51,8 +51,24 @@ export class SessionService {
    * au serveur, ni inscrit dans les journaux d'accès. Seule son empreinte est
    * envoyée.
    */
+  /**
+   * Identité déjà présente sur cet appareil, s'il y en a une.
+   * Permet de prévenir avant d'écraser le compte de quelqu'un d'autre.
+   */
+  async existingAccount() {
+    const stored = await this.repos.identity.load();
+    return stored?.pseudo ? { pseudo: stored.pseudo, displayName: stored.displayName } : null;
+  }
+
   async claimInvitation({ inviteSecret, pin, displayName }) {
     const inviteIdHash = await computeInviteId(inviteSecret);
+
+    // Une invitation crée un compte DISTINCT : il lui faut donc une identité
+    // d'appareil neuve. Réutiliser celle déjà stockée envoyait au serveur un
+    // identifiant appartenant à quelqu'un d'autre, qu'il refusait — et l'échec
+    // s'affichait en « vérifiez votre connexion », ce qui n'aidait personne.
+    await wipeLocalData(this.db);
+    this.identity = null;
     const identity = (await this.loadOrCreateIdentity()).identity;
 
     const result = await this.api.claimInvite({

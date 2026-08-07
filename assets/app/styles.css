@@ -80,8 +80,8 @@
      volontairement plus profond que les cartes : c'est ce qui donne enfin
      une existence visuelle aux bulles reçues (1,52:1 contre 1,07:1 avant),
      sans avoir à les éclaircir — elles sont déjà blanches. */
-  --fond: #e9ddcd; /* toile de fond des écrans */
-  --fond-fil: #dccebb; /* fond du fil, plus profond encore */
+  --fond: #ece0d0; /* toile de fond des écrans */
+  --fond-fil: #ddcfbc; /* fond du fil, plus profond encore */
   --fond-eleve: #fffdf9; /* cartes, bulles reçues, en-tête, composeur */
   --fond-doux: #d3c2a9; /* surfaces secondaires, boutons discrets */
   --bordure: #cbbaa2;
@@ -93,6 +93,22 @@
   --accent: #8b3e13; /* 7,4:1 sur --fond-eleve */
   --accent-clair: #f7e6d8;
   --accent-contraste: #fffdf9; /* 7,4:1 sur --accent */
+
+  /* Le laiton du médaillon. Il ne porte JAMAIS de texte — uniquement des
+     filets, des lueurs et des liserés d'un pixel. Une couleur décorative n'a
+     pas à passer un ratio de lisibilité, mais elle doit rester assez discrète
+     pour ne pas concurrencer l'accent : c'est un reflet, pas un aplat. */
+  --or: #b98a4b;
+  --or-vif: #d9ad6d;
+
+  /* Lumière rasante. Toutes les surfaces élevées la reçoivent : c'est ce qui
+     les fait exister comme matière plutôt que comme rectangles colorés. */
+  --lumiere: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 70%),
+    rgb(255 255 255 / 0%) 42%
+  );
+  --lumiere-force: 1;
 
   --bulle-moi: #8b3e13;
   --bulle-moi-texte: #fffdf9;
@@ -218,6 +234,17 @@
     --focus: #f6efe6;
     --focus-liseré: #17130f;
 
+    /* En sombre, le laiton doit s'éclaircir : le même #b98a4b sur un fond
+       presque noir passe pour de la boue. */
+    --or: #c99a58;
+    --or-vif: #eec98d;
+
+    /* La lumière rasante est blanche en clair, ambrée et beaucoup plus
+       discrète en sombre — sur une surface foncée, un voile blanc à 70 %
+       fabrique un halo laiteux au lieu d'un reflet. */
+    --lumiere: linear-gradient(180deg, rgb(255 236 214 / 7%), rgb(255 236 214 / 0%) 46%);
+    --lumiere-force: 1;
+
     --ombre-teinte: 0 0 0;
     --elevation-1: 0 1px 2px rgb(var(--ombre-teinte) / 30%), 0 2px 6px rgb(var(--ombre-teinte) / 26%);
     --elevation-2: 0 2px 4px rgb(var(--ombre-teinte) / 34%), 0 10px 24px rgb(var(--ombre-teinte) / 40%);
@@ -252,6 +279,36 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* ---- Grain de papier ---------------------------------------------------
+   Ce que la direction « médaillon » promettait depuis le début sans jamais
+   le donner : une matière. Sans lui, les beiges se lisent comme des aplats
+   de remplissage ; avec lui, comme du papier.
+
+   Le motif est une tuile de 160 px, donc peint une fois puis répété : le
+   coût tient dans un seul petit raster, pas dans un bruit plein écran. Il
+   est en `fixed` et non dans `#app` pour ne pas défiler avec le fil — un
+   grain qui bouge, c'est du bruit vidéo, pas du papier. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='.055'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* En sombre, `multiply` sur du presque-noir ne produit rien : le grain doit
+     éclaircir. Et il faut le retenir, sinon il vire à la neige. */
+  body::before {
+    opacity: 0.34;
+    mix-blend-mode: overlay;
+  }
+}
+
 h1,
 h2,
 h3 {
@@ -268,7 +325,18 @@ h3 {
   block-size: 100dvh;
   max-inline-size: 780px;
   margin-inline: auto;
-  background: var(--fond);
+  /* Halo chaud : la colonne n'est plus un aplat uniforme, elle a une source de
+     lumière. Il est porté ici, et non par `.fil`, parce que `.note-fil` et
+     `.fil` sont deux boîtes sœurs de hauteurs différentes : deux dégradés
+     identiques n'y auraient pas coïncidé et auraient laissé une couture. Posé
+     sur le parent commun et vu à travers deux surfaces translucides, il est
+     continu par construction.
+     Son centre est descendu sous l'en-tête (6 % plutôt que -10 %) : au-dessus,
+     il était entièrement masqué par la barre de commande et n'éclairait
+     rien — c'est précisément le haut du fil qui doit recevoir le jour. */
+  background:
+    radial-gradient(125% 48% at 50% 6%, color-mix(in srgb, var(--or) 18%, transparent), transparent 72%),
+    var(--fond);
   overflow: hidden;
 }
 
@@ -278,6 +346,7 @@ h3 {
 
 button,
 .bouton-icone {
+  position: relative;
   font: inherit;
   min-block-size: var(--cible-min);
   padding: var(--e-3) var(--e-5);
@@ -288,6 +357,13 @@ button,
   font-weight: var(--graisse-moyenne);
   letter-spacing: 0.005em;
   cursor: pointer;
+  /* Deux ombres : une portée pour le décoller, un liseré clair INTÉRIEUR en
+     haut pour figurer l'arête éclairée. C'est ce liseré, plus que le dégradé,
+     qui fait qu'un bouton se lit comme un objet et non comme une étiquette. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 22%),
+    0 1px 2px rgb(var(--ombre-teinte) / 12%),
+    0 3px 8px -2px rgb(var(--ombre-teinte) / 18%);
   transition:
     background-color var(--duree-courte) var(--courbe-douce),
     box-shadow var(--duree-courte) var(--courbe-douce),
@@ -297,6 +373,10 @@ button,
 
 button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 88%, var(--texte));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 26%),
+    0 2px 4px rgb(var(--ombre-teinte) / 14%),
+    0 8px 18px -4px rgb(var(--ombre-teinte) / 26%);
 }
 
 /* Retour tactile : sur un écran, l'enfoncement est la seule confirmation que
@@ -342,6 +422,13 @@ button.discret {
   background: none;
   color: var(--texte-doux);
   font-weight: var(--graisse-moyenne);
+  /* Un bouton sans surface n'a ni arête éclairée ni ombre portée : hériter
+     celles de `button` lui aurait fabriqué un relief autour de rien. */
+  box-shadow: none;
+}
+
+button.discret:hover:not(:disabled) {
+  box-shadow: none;
 }
 
 button.discret::after {
@@ -358,6 +445,16 @@ button.discret:hover:not(:disabled) {
 
 .bouton-icone {
   display: grid;
+  /* `place-content` autant que `place-items`, et ce n'est pas une redondance.
+     Le libellé accessible reste dans le DOM (lecteurs d'écran, tests) réduit à
+     `font-size: 0` — mais un nœud de texte dans une grille devient un élément
+     de grille ANONYME, donc une seconde rangée. Avec `align-content: normal`,
+     qui vaut `stretch`, les deux rangées se partageaient les 48 px : la grille
+     mesurait « 36px 12px » et l'icône, centrée dans sa rangée de 36, tombait
+     6 px trop haut dans TOUS les boutons de l'application.
+     `place-content: center` tasse les rangées sur leur contenu et centre le
+     bloc entier : la rangée vide ne déplace plus rien. */
+  place-content: center;
   place-items: center;
   min-inline-size: var(--cible-min);
   padding: 0;
@@ -504,7 +601,13 @@ label {
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: center;
+  /* `safe` n'est pas une coquetterie : avec un simple `center`, un contenu plus
+     haut que l'écran déborde des DEUX côtés, et la partie sortie par le haut
+     devient inatteignable — le défilement ne remonte pas au-delà du bord. Sur
+     un petit téléphone, le titre de « Retrouver votre accès » disparaissait
+     ainsi purement et simplement. `safe center` centre tant que ça tient, puis
+     bascule sur un alignement en haut dès que ça déborde. */
+  justify-content: safe center;
   gap: var(--e-4);
   padding: var(--e-5);
   overflow-y: auto;
@@ -532,7 +635,10 @@ label {
 }
 
 .carte {
-  background: var(--fond-eleve);
+  /* Même matière que les lignes de conversation et les bulles : une carte est
+     une surface élevée, elle capte donc le même jour. Sans cela, les réglages
+     avaient l'air d'appartenir à une autre application. */
+  background: var(--lumiere), var(--fond-eleve);
   border: 1px solid var(--bordure);
   border-radius: var(--rayon-l);
   padding: var(--e-5);
@@ -542,6 +648,7 @@ label {
 .carte h3 {
   margin-block: 0 var(--e-3);
   font-size: var(--texte-l);
+  font-variation-settings: 'opsz' 28, 'SOFT' 30;
 }
 
 .carte p {
@@ -627,18 +734,28 @@ label {
   gap: var(--e-3);
 }
 
+/* La pastille est positionnée dans la marge, PAS placée dans une colonne de
+   grille. La différence n'est pas cosmétique : en grille, chaque enfant inline
+   d'un `<li>` devient un élément de grille distinct. La consigne
+   « Touchez le bouton <strong>Partager</strong> en bas de l'écran » se
+   découpait donc en trois cellules réparties sur deux rangées, et l'écran
+   d'installation iOS — le seul que voient les grands-parents à l'inscription —
+   s'affichait en morceaux. En flux normal, le texte reste du texte. */
 .etapes li {
   counter-increment: etape;
-  display: grid;
-  grid-template-columns: 1.75rem 1fr;
-  gap: var(--e-3);
-  align-items: start;
+  position: relative;
+  padding-inline-start: calc(1.75rem + var(--e-3));
+  min-block-size: 1.75rem;
   font-size: var(--texte-s);
 }
 
 .etapes li::before {
   content: counter(etape);
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
   display: grid;
+  place-content: center;
   place-items: center;
   inline-size: 1.75rem;
   block-size: 1.75rem;
@@ -680,16 +797,47 @@ label {
    ══════════════════════════════════════════════════════════════════════════ */
 
 .entete {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--e-2);
   padding: var(--e-2) var(--e-3);
   padding-block-start: max(var(--e-2), env(safe-area-inset-top));
-  border-block-end: 1px solid var(--bordure);
-  background: var(--fond-eleve);
+  border-block-end: none;
+  /* Verre dépoli : le fil qui défile transparaît sous l'en-tête au lieu de
+     buter dessus. Le repli est un aplat opaque — sans `backdrop-filter`, une
+     surface semi-transparente laisserait le texte se superposer aux bulles. */
+  background: color-mix(in srgb, var(--fond-eleve) 88%, transparent);
   box-shadow: var(--elevation-1);
   z-index: 2;
   flex-shrink: 0;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .entete {
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+  }
+}
+
+/* Le filet de laiton. Un seul pixel, posé sur l'arête basse de l'en-tête et
+   nulle part ailleurs à l'écran : c'est la ligne de partage entre la commande
+   et la conversation. Un `border` l'aurait rendu terne et opaque ; un dégradé
+   le fait s'éteindre sur les bords, comme un reflet. */
+.entete::after {
+  content: '';
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  block-size: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--or) 55%, transparent) 18%,
+    color-mix(in srgb, var(--or) 70%, transparent) 50%,
+    color-mix(in srgb, var(--or) 55%, transparent) 82%,
+    transparent
+  );
 }
 
 .entete h2 {
@@ -697,6 +845,10 @@ label {
   margin: 0;
   padding-inline: var(--e-2);
   font-size: var(--texte-l);
+  /* Fraunces est une variable : `opsz` bas resserre les empattements et
+     `wonk` redresse les lettres, ce qui tient mieux à petite taille qu'un
+     titre d'affiche réduit. */
+  font-variation-settings: 'opsz' 24, 'SOFT' 20, 'WONK' 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -709,21 +861,53 @@ label {
 .liste-conversations {
   flex: 1;
   overflow-y: auto;
-  padding: var(--e-3);
+  padding: var(--e-4) var(--e-3);
   display: flex;
   flex-direction: column;
   gap: var(--e-2);
+  /* Sous les conversations s'ouvre une grande zone vide — inévitable quand une
+     famille n'a que deux fils. Une lueur chaude en haut et un assombrissement
+     progressif vers le bas la transforment en profondeur plutôt qu'en trou. */
+  background:
+    radial-gradient(120% 42% at 50% 0%, color-mix(in srgb, var(--or) 12%, transparent), transparent 68%),
+    linear-gradient(180deg, transparent 45%, rgb(var(--ombre-teinte) / 7%));
+}
+
+/* Le rappel des 7 jours, posé sous la dernière ligne. Il ferme la composition
+   et redit, sur l'écran le plus vu du produit, ce qui le distingue. */
+.pied-liste {
+  margin: auto 0 var(--e-3);
+  padding-block-start: var(--e-5);
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0.85;
+}
+
+/* Un filet de laiton court au-dessus, très court et centré : une signature,
+   pas un séparateur. */
+.pied-liste::before {
+  content: '';
+  display: block;
+  inline-size: 44px;
+  block-size: 1px;
+  margin: 0 auto var(--e-4);
+  background: linear-gradient(90deg, transparent, var(--or), transparent);
 }
 
 .conversation {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--e-4);
   inline-size: 100%;
-  min-block-size: 76px;
-  padding: var(--e-3) var(--e-4);
+  min-block-size: 80px;
+  padding: var(--e-3) var(--e-5) var(--e-3) var(--e-4);
   border-radius: var(--rayon-l);
-  background: var(--fond-eleve);
+  /* Lumière rasante + fond : la ligne devient une tuile qui capte le jour,
+     alors qu'un aplat blanc unique en faisait un simple champ de saisie. */
+  background: var(--lumiere), var(--fond-eleve);
   border: 1px solid var(--bordure);
   color: var(--texte);
   text-align: start;
@@ -732,10 +916,35 @@ label {
   animation: entree-ligne var(--duree-moyenne) var(--courbe-sortie) both;
 }
 
+/* Chevron : sans lui, rien ne dit qu'une ligne s'ouvre. Il vit dans la marge
+   droite réservée par le `padding-inline-end` et glisse à l'approche. */
+.conversation::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: var(--e-4);
+  inline-size: 18px;
+  block-size: 18px;
+  background: var(--texte-doux);
+  opacity: 0.42;
+  -webkit-mask: var(--ic-retour) center / contain no-repeat;
+  mask: var(--ic-retour) center / contain no-repeat;
+  transform: scaleX(-1);
+  transition:
+    transform var(--duree-courte) var(--courbe-sortie),
+    opacity var(--duree-courte) var(--courbe-douce);
+}
+
 .conversation:hover {
-  background: var(--fond-eleve);
+  background: var(--lumiere), var(--fond-eleve);
+  /* Le filet de laiton reparaît au survol : la ligne visée s'ourle d'or. */
+  border-color: color-mix(in srgb, var(--or) 55%, var(--bordure));
   box-shadow: var(--elevation-2);
   transform: translateY(-1px);
+}
+
+.conversation:hover::after {
+  opacity: 0.7;
+  transform: scaleX(-1) translateX(2px);
 }
 
 .conversation:active {
@@ -743,19 +952,37 @@ label {
 }
 
 .avatar {
+  position: relative;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  inline-size: 52px;
-  block-size: 52px;
+  inline-size: 54px;
+  block-size: 54px;
   border-radius: var(--rayon-rond);
-  background: var(--accent-clair);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  color: var(--accent);
+  /* `--teinte` est posée par views.js à partir du nom ; le repli garde la
+     teinte de l'accent pour tout avatar rendu sans elle. */
+  background:
+    radial-gradient(120% 120% at 30% 22%, hsl(var(--teinte, 24) 62% 92%), hsl(var(--teinte, 24) 55% 84%));
+  border: 1px solid hsl(var(--teinte, 24) 45% 62% / 55%);
+  color: hsl(var(--teinte, 24) 72% 26%);
   font-family: var(--police-titre);
   font-size: var(--texte-l);
   font-weight: var(--graisse-forte);
+  font-variation-settings: 'opsz' 14;
   line-height: 1;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Mêmes angles, clartés inversées : en sombre, un médaillon pastel brille
+     plus que le texte qu'il accompagne. */
+  .avatar {
+    background:
+      radial-gradient(120% 120% at 30% 22%, hsl(var(--teinte, 24) 38% 30%), hsl(var(--teinte, 24) 40% 22%));
+    border-color: hsl(var(--teinte, 24) 40% 46% / 55%);
+    color: hsl(var(--teinte, 24) 70% 78%);
+    box-shadow: inset 0 1px 0 rgb(255 236 214 / 10%);
+  }
 }
 
 /* Ouvrir une conversation à deux est une création, pas une entrée de liste :
@@ -771,9 +998,11 @@ label {
   background: transparent;
   border-style: dashed;
   border-color: var(--accent);
+  color: var(--accent);
   font-size: var(--texte-xl);
   font-family: var(--police);
   font-weight: var(--graisse-normale);
+  box-shadow: none; /* un médaillon vide n'a pas d'arête éclairée */
 }
 
 .conversation.nouvelle-conversation:hover {
@@ -817,7 +1046,22 @@ label {
      et la bulle avec. C'était le défaut le plus visible du produit. */
   align-items: flex-start;
   gap: var(--e-3);
-  background: var(--fond-fil);
+  /* L'écran le plus regardé du produit était le plus plat. Deux couches très
+     faibles : une lumière chaude qui descend de l'en-tête, et un
+     assombrissement au pied qui donne au composeur un sol sur lequel poser.
+     Elles sont fixées au conteneur, pas au contenu : le fond ne défile donc
+     pas avec les bulles, et rien ne bouge quand on remonte le fil — c'est le
+     comportement par défaut (`background-attachment: scroll`) sur un conteneur
+     défilant, il ne faut surtout pas le passer à `local`.
+
+     La lueur chaude, elle, n'est PAS ici : `.note-fil` est une boîte sœur, et
+     deux dégradés identiques dans deux boîtes de hauteurs différentes ne se
+     raccordent pas — il en résultait une couture nette sous la note. Elle est
+     donc portée par `#app`, parent commun, et transparaît à travers ces deux
+     surfaces rendues volontairement translucides. */
+  background:
+    linear-gradient(180deg, transparent 62%, rgb(var(--ombre-teinte) / 6%)),
+    color-mix(in srgb, var(--fond-fil) 88%, transparent);
 }
 
 /* Rappel unique des 7 jours, en tête de fil. Il appartient visuellement au fil
@@ -825,7 +1069,9 @@ label {
 .note-fil {
   margin: 0;
   padding: var(--e-3) var(--e-4) var(--e-2);
-  background: var(--fond-fil);
+  /* Même translucidité que `.fil` : c'est la condition pour que la lueur de
+     `#app` traverse les deux boîtes sans marquer de ligne entre elles. */
+  background: color-mix(in srgb, var(--fond-fil) 88%, transparent);
   color: var(--texte-doux);
   font-size: var(--texte-s);
   text-align: center;
@@ -916,19 +1162,47 @@ label {
   padding: var(--e-3) var(--e-4);
   border-radius: var(--rayon-l);
   border-start-start-radius: var(--rayon-xs);
-  background: var(--bulle-autre);
+  background: var(--lumiere), var(--bulle-autre);
   border: 1px solid var(--bordure);
-  box-shadow: var(--elevation-1);
+  /* Ombre resserrée et rapprochée : une bulle est posée sur le fil, pas
+     suspendue au-dessus. `--elevation-1` la faisait flotter. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 45%),
+    0 1px 1px rgb(var(--ombre-teinte) / 7%),
+    0 4px 10px -4px rgb(var(--ombre-teinte) / 14%);
   overflow-wrap: anywhere;
   max-inline-size: 100%;
 }
 
 .mien .bulle {
-  background: var(--bulle-moi);
+  /* Dégradé plutôt qu'aplat : sur une colonne de bulles identiques, un aplat
+     unique fabrique un pavé compact ; un dégradé très court donne à chacune
+     son propre volume sans qu'on sache dire pourquoi. */
+  background: linear-gradient(
+    170deg,
+    color-mix(in srgb, var(--bulle-moi) 88%, white),
+    var(--bulle-moi) 62%
+  );
   color: var(--bulle-moi-texte);
   border-color: color-mix(in srgb, var(--bulle-moi) 70%, black);
   border-start-start-radius: var(--rayon-l);
   border-start-end-radius: var(--rayon-xs);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 20%),
+    0 1px 1px rgb(var(--ombre-teinte) / 10%),
+    0 4px 12px -4px color-mix(in srgb, var(--bulle-moi) 40%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* En sombre, `white` dans le mélange délave la bulle : on éclaircit avec sa
+     propre teinte plutôt qu'avec du blanc. */
+  .mien .bulle {
+    background: linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--bulle-moi) 82%, var(--accent)),
+      var(--bulle-moi) 62%
+    );
+  }
 }
 
 /* Grappe de messages consécutifs.
@@ -1201,6 +1475,9 @@ button.enregistrer-photo:hover:not(:disabled) {
   block-size: 40px;
   padding: 0;
   display: grid;
+  /* Idem : « Réagir » et « Répondre » subsistent en `font-size: 0` pour les
+     lecteurs d'écran et forment une rangée fantôme. Voir `.bouton-icone`. */
+  place-content: center;
   place-items: center;
   border-radius: var(--rayon-rond);
   background: color-mix(in srgb, var(--fond-eleve) 80%, transparent);
@@ -1382,6 +1659,10 @@ button.enregistrer-photo:hover:not(:disabled) {
   block-size: var(--cible-min);
   padding: 0;
   display: grid;
+  /* Même piège que `.bouton-icone` : le libellé « Envoyer » subsiste en
+     `font-size: 0` et forme une seconde rangée qui décalait l'avion en papier
+     vers le haut. Voir le commentaire détaillé à la règle `.bouton-icone`. */
+  place-content: center;
   place-items: center;
   border-radius: var(--rayon-rond);
   box-shadow: var(--elevation-1);
@@ -1447,7 +1728,11 @@ button.enregistrer-photo:hover:not(:disabled) {
   flex-shrink: 0;
 }
 
+/* Un écran vide n'annonce pas une panne : c'est une famille qui n'a pas encore
+   écrit. D'où un halo chaud plutôt qu'un gris d'attente, et un médaillon
+   dessiné en laiton — le même objet que l'icône de l'application, au repos. */
 .vide {
+  position: relative;
   display: grid;
   place-items: center;
   align-content: center;
@@ -1456,51 +1741,62 @@ button.enregistrer-photo:hover:not(:disabled) {
   padding: var(--e-7) var(--e-5);
   text-align: center;
   color: var(--texte-doux);
-  background: var(--fond-fil);
+  background:
+    radial-gradient(70% 45% at 50% 38%, color-mix(in srgb, var(--or) 16%, transparent), transparent 70%),
+    var(--fond-fil);
+  animation: entree-ecran var(--duree-longue) var(--courbe-sortie) both;
 }
 
-/* Le médaillon fermé : l'écran vide n'est pas un manque, c'est un objet au
-   repos. Même silhouette que l'icône de l'application — bélière comprise, d'où
-   le second pseudo-élément remonté par `order`. */
+/* La bélière du médaillon. */
 .vide::after {
   content: '';
   order: -2;
-  inline-size: 26px;
-  block-size: 26px;
+  inline-size: 30px;
+  block-size: 30px;
   border-radius: var(--rayon-rond);
-  border: 3px solid var(--bordure-forte);
-  margin-block-end: -14px;
-  opacity: 0.7;
+  border: 3px solid color-mix(in srgb, var(--or) 78%, transparent);
+  margin-block-end: -16px;
+  opacity: 0.9;
 }
 
+/* Le boîtier, fendu en deux comme un médaillon qui s'ouvre. Il respire très
+   lentement : un objet posé, pas un chargement en cours. */
 .vide::before {
   content: '';
   order: -1;
-  inline-size: 72px;
-  block-size: 96px;
+  inline-size: 86px;
+  block-size: 114px;
+  margin-block-end: var(--e-3);
   border-radius: 50% / 46% 46% 54% 54%;
-  border: 3px solid var(--bordure-forte);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bordure-forte) 40%, transparent);
-  background: linear-gradient(
-    to right,
-    transparent calc(50% - 1.5px),
-    var(--bordure-forte) calc(50% - 1.5px),
-    var(--bordure-forte) calc(50% + 1.5px),
-    transparent calc(50% + 1.5px)
-  );
-  opacity: 0.7;
+  border: 3px solid color-mix(in srgb, var(--or) 78%, transparent);
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(50% - 1.5px),
+      color-mix(in srgb, var(--or) 62%, transparent) calc(50% - 1.5px),
+      color-mix(in srgb, var(--or) 62%, transparent) calc(50% + 1.5px),
+      transparent calc(50% + 1.5px)
+    ),
+    radial-gradient(90% 70% at 34% 24%, color-mix(in srgb, var(--or) 20%, transparent), transparent 72%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--or-vif) 45%, transparent),
+    0 10px 30px -12px color-mix(in srgb, var(--or) 55%, transparent);
+  animation: respiration-lente 5.5s var(--courbe-douce) infinite;
 }
 
 .vide h3 {
   margin: 0;
-  font-size: var(--texte-l);
+  font-size: var(--texte-xl);
+  font-variation-settings: 'opsz' 48, 'SOFT' 40;
   color: var(--texte);
   max-inline-size: 22ch;
+  text-wrap: balance;
 }
 
 .vide p {
   margin: 0;
-  max-inline-size: 32ch;
+  max-inline-size: 34ch;
+  text-wrap: balance;
 }
 
 .liste-appareils {
@@ -1651,6 +1947,15 @@ button.enregistrer-photo:hover:not(:disabled) {
   }
 }
 
+/* Respiration du médaillon des écrans vides. Amplitude minuscule et durée
+   longue : au-delà, l'objet a l'air de charger quelque chose. */
+@keyframes respiration-lente {
+  50% {
+    transform: scale(1.025);
+    opacity: 0.88;
+  }
+}
+
 /* Le vestibulaire ne se négocie pas : si le système demande moins de
    mouvement, il ne reste que les changements d'opacité les plus courts. */
 @media (prefers-reduced-motion: reduce) {
@@ -1665,7 +1970,8 @@ button.enregistrer-photo:hover:not(:disabled) {
 
   .pastille-enregistrement,
   .chargement::before,
-  .chargement p {
+  .chargement p,
+  .vide::before {
     animation: none;
   }
 
@@ -1683,23 +1989,39 @@ button.enregistrer-photo:hover:not(:disabled) {
 @media (min-width: 900px) {
   body {
     /* Le fond doit être nettement plus sourd que la colonne, sans quoi le
-       « cadre » ne cadre rien. Teinté avec la couleur de texte, il reste dans
-       la même famille chaude. */
+       « cadre » ne cadre rien. Trois couches : une lueur chaude en haut, un
+       vignettage aux angles qui ramène l'œil au centre, puis la teinte de
+       table. Sans le vignettage, la colonne était posée sur un aplat et
+       flottait au lieu d'être éclairée. */
     background:
-      radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%),
-      color-mix(in srgb, var(--texte) 14%, var(--fond-doux));
+      radial-gradient(100% 70% at 50% -6%, color-mix(in srgb, var(--or) 24%, transparent), transparent 62%),
+      radial-gradient(120% 90% at 50% 50%, transparent 42%, rgb(var(--ombre-teinte) / 22%)),
+      color-mix(in srgb, var(--texte) 16%, var(--fond-doux));
     padding-block: var(--e-5);
   }
 
   #app {
     block-size: calc(100dvh - var(--e-6));
+    max-inline-size: 860px;
     border-radius: var(--rayon-xl);
-    border: 1px solid var(--bordure);
-    box-shadow: var(--elevation-3);
+    /* Le liseré de laiton court sur tout le pourtour : c'est la monture du
+       médaillon. Il est tracé par un `outline` intérieur plutôt que par la
+       bordure, pour rester net dans l'angle arrondi. */
+    border: 1px solid color-mix(in srgb, var(--or) 45%, var(--bordure));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--or-vif) 30%, transparent),
+      var(--elevation-3);
   }
 
   .entete {
     padding-block-start: var(--e-2);
+  }
+
+  /* Le grain reste à l'échelle de la page, pas de la colonne : sur grand
+     écran c'est la table qui porte la matière, et la colonne posée dessus
+     n'en reçoit qu'une part. */
+  body::before {
+    opacity: 0.34;
   }
 }
 

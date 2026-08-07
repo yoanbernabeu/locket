@@ -208,6 +208,20 @@ class LocketApp {
       return this.showJoin({ error: 'Le code doit contenir entre 6 et 12 chiffres.' });
     }
 
+    // Un navigateur ne porte qu'une seule identité : accepter cette invitation
+    // effacera celle qui s'y trouve déjà. Mieux vaut le dire que de le faire.
+    const occupant = await this.session.existingAccount();
+    if (occupant) {
+      const nom = occupant.displayName ?? occupant.pseudo;
+      const accepte = globalThis.confirm(
+        `Cet appareil est déjà utilisé par ${nom}.\n\n` +
+          `Continuer déconnectera ${nom} et effacera ses messages d'ici.\n\n` +
+          `Pour rejoindre sans perdre ce compte, ouvrez le lien sur un autre appareil ` +
+          `ou dans une fenêtre de navigation privée.\n\nContinuer quand même ?`,
+      );
+      if (!accepte) return this.showLogin();
+    }
+
     let result;
     try {
       result = await this.session.claimInvitation({
@@ -221,7 +235,12 @@ class LocketApp {
           error instanceof ApiError && (error.isExpired || error.status === 404)
             ? "Ce lien ne fonctionne plus : il n'est valable qu'une seule fois. " +
               "Demandez qu'on vous en envoie un nouveau."
-            : "Nous n'avons pas réussi à vous inscrire. Vérifiez votre connexion et réessayez.",
+            : error instanceof ApiError && error.status === 409
+              ? "Cet identifiant est déjà pris, ou cet appareil est déjà rattaché à " +
+                "un autre compte. Demandez une nouvelle invitation."
+              : error instanceof ApiError
+                ? (error.payload?.error ?? "L'inscription a été refusée par le serveur.")
+                : "Nous n'avons pas réussi à vous inscrire. Vérifiez votre connexion et réessayez.",
       });
     }
 
