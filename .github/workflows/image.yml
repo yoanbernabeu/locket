@@ -76,17 +76,29 @@ jobs:
         run: |
           docker run -d --name locket-fumee \
             -e SERVER_NAME=:80 \
-            -p 8080:80 \
+            -p 127.0.0.1:8080:80 \
             locket:fumee
 
+      # `--max-time` n'est pas une précaution de style : `docker run -p` fait
+      # écouter le proxy sur l'hôte DÈS le démarrage du conteneur. Une connexion
+      # ouverte avant que l'application n'écoute est donc acceptée puis laissée
+      # en attente, et un `curl` sans borne y reste indéfiniment — la boucle
+      # censée abandonner au bout de 60 s pendait un quart d'heure, jusqu'au
+      # délai de garde du job. Le symptôme dépend du minutage : la même étape
+      # était passée au run précédent.
       - name: Attendre que l'application réponde
         run: |
           for tentative in $(seq 1 60); do
-            if curl -fsS http://localhost:8080/health >/dev/null 2>&1; then
-              echo "✓ /health répond après ${tentative}s"
+            if ! docker inspect -f '{{.State.Running}}' locket-fumee | grep -q true; then
+              echo "✗ le conteneur s'est arrêté"
+              docker logs locket-fumee
+              exit 1
+            fi
+            if curl -fsS --connect-timeout 2 --max-time 5 http://localhost:8080/health >/dev/null 2>&1; then
+              echo "✓ /health répond après ${tentative} tentative(s)"
               exit 0
             fi
-            sleep 1
+            sleep 2
           done
           echo "✗ /health n'a jamais répondu"
           docker logs locket-fumee
