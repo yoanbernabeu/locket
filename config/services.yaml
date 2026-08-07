@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        # Liaisons scalaires communes : evite d'avoir a declarer explicitement chaque service
+        # qui a besoin du repertoire du projet ou du mode debogage.
+        bind:
+            string $projectDir: '%kernel.project_dir%'
+            bool $debug: '%kernel.debug%'
+
+    App\:
+        resource: '../src/'
+        # Sans cet exclude, entites, DTO, exceptions et messages deviennent des services :
+        # le conteneur tente alors d'autocabler leurs constructeurs, `lint:container` signale
+        # des dependances inintrospectables, et une entite pourrait etre injectee par erreur
+        # la ou une instance chargee depuis la base est attendue.
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Doctrine/Type/'
+            - '../src/Dto/'
+            - '../src/Entity/'
+            - '../src/Enum/'
+            - '../src/Exception/'
+            - '../src/Kernel.php'
+            - '../src/Message/'
+            - '../src/Security/Attribute/'
+            - '../src/Security/TooManyAttemptsException.php'
+            - '../src/Service/Message/EnvelopeHeader.php'
+            - '../src/Service/Push/PushPayload.php'
+            - '../src/Service/Retention/PurgeReport.php'
+
+    # --- Web Push -----------------------------------------------------------------------
+    # Client PSR-18 explicite plutot que decouverte automatique : le comportement de
+    # minishlink/web-push ne doit pas dependre des paquets presents dans vendor/.
+    # Client dédié au Web Push, SANS suivi de redirection.
+    #
+    # La validation d'endpoint (PushEndpointValidator) n'examine que l'URL
+    # enregistrée : avec le suivi par défaut (20 sauts), un endpoint public et
+    # valide pouvait rediriger vers http://127.0.0.1:2019 — l'API d'administration
+    # de Caddy — et la requête partait quand même, en-tête VAPID compris.
+    push.http_client:
+        class: Symfony\Contracts\HttpClient\HttpClientInterface
+        factory: ['Symfony\Component\HttpClient\HttpClient', 'create']
+        arguments:
+            - max_redirects: 0
+              timeout: 10
+              max_duration: 15
+
+    Symfony\Component\HttpClient\Psr18Client:
+        arguments:
+            $client: '@push.http_client'
+    Psr\Http\Client\ClientInterface: '@Symfony\Component\HttpClient\Psr18Client'
+
+    # --- Mercure ------------------------------------------------------------------------
+    # Fabrique de JWT dediee aux ABONNES : elle ne delivre aucun droit de publication.
+    # Duree de vie courte et volontaire : le JWT est le seul controle d'acces du hub, qui ne
+    # sait rien du retrait d'un membre. Une heure laissait un membre exclu recevoir le direct
+    # pendant une heure. Cinq minutes bornent cette fenetre ; le client renouvelle son jeton.
+    locket.mercure.subscriber_token_factory:
+        class: Symfony\Component\Mercure\Jwt\LcobucciFactory
+        arguments:
+            $secret: '%env(MERCURE_JWT_SECRET)%'
+            $algorithm: 'hmac.sha256'
+            $jwtLifetime: 300
+
+    App\Service\Realtime\SubscriberTokenFactory:
+        arguments:
+            $tokenFactory: '@locket.mercure.subscriber_token_factory'
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        # Aucun hub Mercure ne tourne pendant les tests : on enregistre les publications
+        # au lieu de les envoyer, ce qui les rend aussi verifiables.
+        App\Service\Realtime\RecordingHub:
+            public: true
+
+        Symfony\Component\Mercure\HubInterface: '@App\Service\Realtime\RecordingHub'
+
+        # Les 4xx attendus de l'API (403, 409, 410...) sont journalises en niveau "error" par
+        # le noyau : en test, ce bruit masque les vraies defaillances.
+        Psr\Log\NullLogger: ~
+        logger: '@Psr\Log\NullLogger'

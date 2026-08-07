@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{# Page servie par le service worker quand le réseau est absent. Elle doit être
+   entièrement autonome : aucun appel réseau, aucun script. #}
+
+{% block title %}Hors ligne — {{ instance_name }}{% endblock %}
+
+{% block body %}
+    <div id="app">
+        <div class="ecran-centre">
+            <div class="marque">
+                <h1>Pas de connexion</h1>
+            </div>
+            <div class="carte">
+                <p>
+                    Locket a besoin d'Internet pour recevoir les nouveaux messages.
+                    Vos conversations réapparaîtront dès le retour du réseau.
+                </p>
+                <p>
+                    Les messages écrits pendant la coupure sont conservés et seront
+                    envoyés automatiquement.
+                </p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

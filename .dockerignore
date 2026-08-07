@@ -1,0 +1,60 @@
+# Contexte de build Docker.
+#
+# Sans ce fichier, `docker build` transfère node_modules, vendor, la base SQLite
+# de développement et l'historique Git au démon : plusieurs centaines de Mo
+# inutiles, un build lent, et surtout le risque de faire entrer des secrets
+# locaux (.env.local, clés VAPID) dans l'image.
+
+# --- Dépendances : réinstallées dans les étapes dédiées du Dockerfile ---
+node_modules/
+vendor/
+
+# --- Artefacts de build : régénérés par l'étape « assets » ---
+public/build/
+public/sw.js
+public/sw.js.map
+public/icons/
+public/favicon.png
+
+# --- État local : ne doit JAMAIS entrer dans une image ---
+var/
+!var/.gitkeep
+.env.local
+.env.*.local
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# --- Développement et outillage ---
+.git/
+.gitignore
+.github/
+.idea/
+.vscode/
+.DS_Store
+.phpunit.cache/
+.php-cs-fixer.cache
+
+# --- Tests et rapports ---
+tests/
+tests-e2e/
+test-results/
+playwright-report/
+playwright.config.js
+phpunit.dist.xml
+phpunit.xml
+vitest.config.js
+eslint.config.js
+
+# --- Documentation : utile dans le dépôt, pas dans l'image ---
+docs/
+README.md
+CADRAGE.md
+LICENSE
+
+# --- Docker lui-même ---
+Dockerfile
+.dockerignore
+compose.yaml
+compose.override.yaml

@@ -1,0 +1,52 @@
+{# Gabarit racine. Il ne rend JAMAIS de contenu de message : le serveur en est
+   incapable, puisque tout est chiffré. Il sert la coquille, l'application la
+   remplit après déchiffrement local. #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{% block title %}Locket{% endblock %}</title>
+
+    {# La barre système doit prolonger l'en-tête de l'application, pas la brand
+       color : un bandeau terracotta au-dessus d'un en-tête crème donnait deux
+       applications superposées. Ces valeurs sont --fond-eleve dans chaque thème. #}
+    <meta name="theme-color" content="#fffdf9" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#3a2f28" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="La messagerie de la famille, chiffrée de bout en bout.">
+
+    {# Empêche l'indexation : une instance familiale n'a rien à faire dans un moteur de recherche. #}
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Locket">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    {# Les deux fontes variables sont auto-hébergées et découvertes tardivement
+       (elles sont déclarées dans la feuille de style, elle-même chargée après).
+       Sans préchargement, le premier écran s'affiche en police système puis
+       saute. On ne précharge que le sous-ensemble latin, le seul indispensable
+       au premier rendu. #}
+    <link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+    {% block stylesheets %}
+        {# Repli volontaire : la page hors-ligne n'ouvre ni ce bloc ni le bloc
+           « javascripts », et se retrouvait donc servie en HTML nu — au pire
+           moment, celui où l'utilisateur n'a déjà plus de réseau. On extrait
+           ici les seules balises de style produites par Vite (le script est
+           écarté : la page hors-ligne doit rester sans JavaScript). Les autres
+           gabarits reçoivent la même feuille via vite_entry() ; le navigateur
+           dédoublonne une URL identique. #}
+        {{ vite_entry('app')|split('<script')|first|raw }}
+    {% endblock %}
+    {% block javascripts %}{% endblock %}
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

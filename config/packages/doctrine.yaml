@@ -1,0 +1,58 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+
+        profiling_collect_backtrace: '%kernel.debug%'
+
+        # Le mode WAL, synchronous=NORMAL, busy_timeout et foreign_keys sont des PRAGMA :
+        # aucune cle de configuration DBAL ne peut les emettre. Ils sont appliques a chaque
+        # ouverture de connexion par App\Doctrine\SqlitePragmaMiddleware, qui porte aussi la
+        # justification de chacun. ATTR_TIMEOUT reste une ceinture de securite cote PDO.
+        options:
+            !php/const PDO::ATTR_TIMEOUT: 5
+
+        # Blobs opaques (enveloppes, wraps, cles publiques) : stockage BLOB, chaine PHP.
+        # Voir App\Doctrine\Type\BinaryStringType pour la justification du type maison.
+        types:
+            binary_string: App\Doctrine\Type\BinaryStringType
+
+        # `messenger_messages` n'est pas une entite : elle est creee par
+        # `bin/console messenger:setup-transports` (appele par `locket:install`). L'exclure
+        # evite que `doctrine:schema:validate` et `migrations:diff` proposent sans fin de la
+        # supprimer.
+        schema_filter: '~^(?!messenger_messages$)~'
+    orm:
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        auto_mapping: true
+        mappings:
+            App:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Entity'
+                prefix: 'App\Entity'
+                alias: App
+
+when@test:
+    doctrine:
+        dbal:
+            # "TEST_TOKEN" is typically set by ParaTest
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

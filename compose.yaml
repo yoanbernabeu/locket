@@ -1,0 +1,67 @@
+# Déploiement de Locket.
+#
+#   1. Renseignez SERVER_NAME avec votre nom de domaine.
+#   2. docker compose up -d
+#   3. Ouvrez https://votre-domaine/ et créez votre espace familial.
+#
+# Le certificat TLS est obtenu automatiquement par Caddy. Aucun autre service
+# n'est nécessaire : ni base de données, ni serveur de cache, ni reverse proxy.
+
+services:
+  locket:
+    build: .
+    image: locket:latest
+    restart: unless-stopped
+
+    environment:
+      # Nom de domaine public. Indispensable : sans HTTPS, ni le chiffrement
+      # côté navigateur ni les notifications ne fonctionnent.
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+
+      # Adresse utilisée par Let's Encrypt pour les avis d'expiration.
+      CADDY_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+
+      # Nom affiché de l'instance.
+      LOCKET_INSTANCE_NAME: ${LOCKET_INSTANCE_NAME:-Locket}
+
+      # Rétention en jours. La modifier change la promesse faite aux membres :
+      # ne le faites qu'en connaissance de cause.
+      LOCKET_RETENTION_DAYS: ${LOCKET_RETENTION_DAYS:-7}
+
+      # Hub Mercure. Le serveur d'application publie sur l'écoute interne du
+      # conteneur (port 8080, non publié) : la valeur par défaut de `.env` pointe
+      # vers le port 8000, sur lequel rien n'écoute ici, et aucune publication
+      # temps réel ne partirait. Le navigateur, lui, s'abonne sur la même origine
+      # que la page — d'où une URL publique relative.
+      MERCURE_URL: ${MERCURE_URL:-http://localhost:8080/.well-known/mercure}
+      MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:-/.well-known/mercure}
+
+      VAPID_SUBJECT: mailto:${ADMIN_EMAIL:-admin@localhost}
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+
+    volumes:
+      # Tout l'état de l'instance : base SQLite, médias chiffrés, sessions,
+      # secrets. C'est le seul répertoire à sauvegarder.
+      - locket-data:/data
+      # Certificats TLS, conservés pour éviter de heurter les quotas Let's Encrypt.
+      - caddy-data:/data/caddy
+      - caddy-config:/config
+
+    healthcheck:
+      # Passe par l'écoute interne : sur le site principal, une requête vers
+      # 127.0.0.1 porte un en-tête « Host » qui ne correspond à aucun domaine
+      # servi dès que SERVER_NAME est un vrai nom de domaine.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  locket-data:
+  caddy-data:
+  caddy-config:

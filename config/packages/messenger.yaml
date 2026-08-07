@@ -1,0 +1,16 @@
+framework:
+    messenger:
+        transports:
+            sync: 'sync://'
+            # Les notifications push partent en asynchrone : un service de push lent ne doit
+            # jamais retarder l'accuse de reception d'un message.
+            async: '%env(MESSENGER_TRANSPORT_DSN)%'
+
+        routing:
+            'App\Message\NotifyConversation': async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'in-memory://'

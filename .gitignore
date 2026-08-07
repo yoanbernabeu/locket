@@ -1,0 +1,33 @@
+
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+
+###> front ###
+/node_modules/
+/public/build/
+/public/sw.js
+/public/sw.js.map
+/public/icons/
+/public/favicon.png
+/test-results/
+/playwright-report/
+###< front ###
+
+###> locket ###
+/var/media/
+/var/*.db
+/var/*.db-shm
+/var/*.db-wal
+###< locket ###

@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Administration — {{ instance_name }}{% endblock %}
+
+{% block javascripts %}
+    {{ vite_entry('admin') }}
+{% endblock %}
+
+{% block body %}
+    <div id="app">
+        <header class="entete">
+            <a class="bouton-icone" href="/" aria-label="Retour aux conversations">←</a>
+            <h2>Administration</h2>
+        </header>
+
+        <div class="ecran-centre" style="justify-content:flex-start">
+
+            <div class="carte">
+                <h3>Inviter quelqu'un</h3>
+                <p>
+                    Un lien à usage unique sera créé. Transmettez-le à la personne, ou
+                    faites-lui scanner le QR code si elle est à côté de vous.
+                </p>
+                <form id="formulaire-invitation-admin" novalidate>
+                    <div class="champ">
+                        <label for="invite-displayName">Son prénom</label>
+                        <input id="invite-displayName" name="displayName" required maxlength="60">
+                    </div>
+                    <div class="champ">
+                        <label for="invite-pseudo">Son identifiant de connexion</label>
+                        <input id="invite-pseudo" name="pseudo" required maxlength="60"
+                               autocapitalize="none" spellcheck="false">
+                    </div>
+                    <div class="champ">
+                        <button type="submit">Créer l'invitation</button>
+                    </div>
+                </form>
+                <div id="resultat-invitation"></div>
+            </div>
+
+            <div class="carte">
+                <h3>Membres</h3>
+                <ul class="liste-appareils">
+                    {% for membre in membres %}
+                        <li>
+                            <div>
+                                <strong>{{ membre.displayName }}</strong>
+                                <span class="etiquette {{ membre.isAdmin ? 'actif' }}">
+                                    {{ membre.isAdmin ? 'Administrateur' : 'Membre' }}
+                                </span>
+                                <br>
+                                <span class="conversation-apercu">
+                                    {{ membre.pseudo }} — {{ membre.deviceCount }} appareil(s)
+                                </span>
+                            </div>
+                            <div class="actions-membre">
+                                {% if not membre.isAdmin %}
+                                    {# Seule issue quand quelqu'un perd son téléphone ou son
+                                       code. Volontairement absent des lignes administrateur :
+                                       le serveur y répond 403, et afficher un bouton qui
+                                       échoue systématiquement est pire que de ne rien montrer. #}
+                                    <button class="secondaire" data-action="redonner-acces"
+                                            data-id="{{ membre.id }}"
+                                            data-pseudo="{{ membre.pseudo }}"
+                                            data-nom="{{ membre.displayName }}"
+                                            title="Génère un nouveau lien : la personne choisira un nouveau code">
+                                        Redonner l'accès
+                                    </button>
+                                    <button class="secondaire" data-action="promouvoir-membre"
+                                            data-id="{{ membre.id }}"
+                                            data-nom="{{ membre.displayName }}"
+                                            title="Un second administrateur pourra vous dépanner si vous perdez votre appareil">
+                                        Nommer administrateur
+                                    </button>
+                                    <button class="danger" data-action="retirer-membre"
+                                            data-id="{{ membre.id }}"
+                                            data-nom="{{ membre.displayName }}">Retirer</button>
+                                {% else %}
+                                    {# Un administrateur ne peut être ni retiré, ni récupéré :
+                                       règle appliquée côté serveur, rappelée ici. #}
+                                    <span class="etiquette">Protégé</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% else %}
+                        <li><em>Aucun autre membre pour l'instant.</em></li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="carte">
+                <h3>Invitations en attente</h3>
+                <ul class="liste-appareils" id="liste-invitations">
+                    {% for invitation in invitations %}
+                        <li>
+                            <div>
+                                <strong>{{ invitation.displayName }}</strong><br>
+                                <span class="conversation-apercu">
+                                    Expire le {{ invitation.expiresAt|date('d/m/Y à H\\hi') }}
+                                </span>
+                            </div>
+                            <button class="secondaire" data-action="revoquer-invitation"
+                                    data-id="{{ invitation.id }}">Annuler</button>
+                        </li>
+                    {% else %}
+                        <li><em>Aucune invitation en attente.</em></li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="carte">
+                <h3>Rappel</h3>
+                <p>
+                    Vous gérez qui fait partie de la famille, mais vous ne pouvez lire
+                    aucune conversation dont vous n'êtes pas membre — pas même celles de
+                    vos enfants. C'est une garantie technique, pas un réglage.
+                </p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

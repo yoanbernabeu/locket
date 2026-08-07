@@ -1,0 +1,9 @@
+parameters:
+    # `resolve:` est indispensable : la valeur de LOCKET_MEDIA_DIR contient %kernel.project_dir%,
+    # qui ne serait pas interprete par un simple %env(...)%.
+    locket.media_dir: '%env(resolve:LOCKET_MEDIA_DIR)%'
+
+when@test:
+    parameters:
+        # Repertoire distinct : la purge des tests supprime reellement des fichiers.
+        locket.media_dir: '%kernel.project_dir%/var/media_test'

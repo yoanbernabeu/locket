@@ -1,0 +1,39 @@
+framework:
+    rate_limiter:
+        # Deux limiteurs complementaires sur la connexion (voir App\Security\LoginThrottler) :
+        # par pseudo pour proteger un compte precis, par IP pour empecher un balayage.
+        login_pseudo:
+            policy: 'sliding_window'
+            limit: 10
+            interval: '15 minutes'
+        login_ip:
+            policy: 'sliding_window'
+            limit: 60
+            interval: '15 minutes'
+
+        # Depot de medias : 25 Mio par requete, sans plafond de cadence un seul membre remplit
+        # le disque de l'instance en quelques secondes. Le seau permet une rafale (un album de
+        # photos) tout en bornant le debit soutenu.
+        media_upload:
+            policy: 'token_bucket'
+            limit: 30
+            rate: { interval: '1 minute', amount: 6 }
+
+when@test:
+    framework:
+        rate_limiter:
+            # Le stockage des limiteurs est un cache partage par toute la suite de tests ;
+            # des plafonds eleves evitent qu'un test en fasse echouer un autre. Le
+            # verrouillage exponentiel, lui, est persiste en base et donc testable tel quel.
+            login_pseudo:
+                policy: 'sliding_window'
+                limit: 100000
+                interval: '15 minutes'
+            login_ip:
+                policy: 'sliding_window'
+                limit: 100000
+                interval: '15 minutes'
+            media_upload:
+                policy: 'token_bucket'
+                limit: 100000
+                rate: { interval: '1 minute', amount: 100000 }

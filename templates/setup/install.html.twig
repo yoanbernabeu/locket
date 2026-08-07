@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{# Assistant de premier lancement.
+
+   Le formulaire est soumis en JavaScript : la création du compte administrateur
+   génère au passage les clés de son premier appareil, ce que seul le navigateur
+   peut faire. #}
+
+{% block title %}Installation de Locket{% endblock %}
+
+{% block javascripts %}
+    {{ vite_entry('setup') }}
+{% endblock %}
+
+{% block body %}
+    <div id="app">
+        <div class="ecran-centre">
+            <div class="marque">
+                <h1>Bienvenue dans Locket</h1>
+                <p>Créons l'espace de votre famille</p>
+            </div>
+
+            <div id="zone-erreur"></div>
+
+            <form class="carte" id="formulaire-installation" novalidate>
+                <div class="champ">
+                    <label for="instanceName">Nom de votre famille</label>
+                    <input id="instanceName" name="instanceName" required maxlength="60"
+                           placeholder="Famille Dupont">
+                </div>
+
+                <div class="champ">
+                    <label for="displayName">Votre prénom</label>
+                    <input id="displayName" name="displayName" required maxlength="60">
+                </div>
+
+                <div class="champ">
+                    <label for="pseudo">Votre identifiant de connexion</label>
+                    <input id="pseudo" name="pseudo" required maxlength="60"
+                           autocapitalize="none" spellcheck="false" autocomplete="username">
+                </div>
+
+                <div class="champ">
+                    <label for="email">Votre adresse e-mail</label>
+                    <input id="email" name="email" type="email" required autocomplete="email">
+                    {# Ce champ promettait une récupération par e-mail qui n'existe pas :
+                       aucun envoi n'est possible sans serveur de messagerie configuré.
+                       Mieux vaut ne rien promettre que de mentir sur un filet de sécurité. #}
+                    <p class="conseil">
+                        Sert au certificat HTTPS et vous identifie comme responsable de
+                        l'instance. Locket n'envoie aucun e-mail.
+                    </p>
+                </div>
+
+                <div class="champ">
+                    <label for="pin">Votre code secret (6 chiffres minimum)</label>
+                    <input id="pin" name="pin" type="password" inputmode="numeric" required
+                           pattern="[0-9]*" minlength="6" maxlength="12"
+                           autocomplete="new-password">
+                    <p class="conseil">
+                        Ce code ne protège aucune clé de chiffrement : il sert uniquement à
+                        vous identifier auprès du serveur, qui limite strictement les tentatives.
+                    </p>
+                </div>
+
+                <div class="champ">
+                    <button type="submit" class="pleine-largeur">Créer l'espace familial</button>
+                </div>
+            </form>
+
+            <div class="carte">
+                <h3>Ce que Locket garantit</h3>
+                <ul>
+                    <li>Les messages sont chiffrés de bout en bout : le serveur ne peut pas les lire.</li>
+                    <li>Tout disparaît au bout de 7 jours, sur tous les appareils, sans exception.</li>
+                    <li>Vous administrez les membres, mais vous ne pouvez pas lire leurs conversations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,129 @@
+# Configuration FrankenPHP de Locket.
+#
+# Un seul processus sert : PHP (mode worker), le hub Mercure, les fichiers
+# statiques et le certificat TLS. C'est ce qui rend l'installation « zero-config »
+# réaliste — il n'y a aucun autre service à installer ni à superviser.
+
+{
+	# Le nom de domaine détermine à lui seul l'obtention du certificat.
+	# Avec « localhost », Caddy émet un certificat local auto-signé, ce qui
+	# suffit pour du développement : le contexte reste sécurisé, donc WebCrypto
+	# et les service workers fonctionnent.
+	frankenphp {
+		worker {
+			file /app/public/index.php
+			# Sans worker, chaque requête réamorce le noyau Symfony. Avec, le
+			# processus est réutilisé : indispensable pour tenir les connexions
+			# Mercure sans saturer les threads.
+			#
+			# Le coureur est celui de symfony/runtime 8.1, qui embarque
+			# FrankenPhpWorkerRunner et le sélectionne sur cette variable. Le
+			# paquet runtime/frankenphp-symfony, qu'on trouve encore dans la
+			# plupart des exemples, ne déclare pas Symfony 8 et n'est plus
+			# nécessaire : le déclarer dans APP_RUNTIME pointait vers une classe
+			# absente, et le worker ne démarrait pas du tout.
+			env FRANKENPHP_WORKER 1
+		}
+	}
+
+	# Journalisation minimale : une instance familiale n'a pas à conserver
+	# l'historique de navigation de ses membres.
+	log {
+		format console
+		level WARN
+	}
+}
+
+{$SERVER_NAME:localhost} {
+	root /app/public
+	encode zstd br gzip
+
+	# --- Hub Mercure, embarqué dans Caddy ---
+	mercure {
+		# Clés de signature des JWT. Le serveur d'application les utilise pour
+		# émettre des jetons d'abonnement restreints, topic par topic.
+		publisher_jwt {$MERCURE_JWT_SECRET}
+		subscriber_jwt {$MERCURE_JWT_SECRET}
+
+		# Aucun abonnement anonyme : un topic de conversation ne doit jamais être
+		# lisible sans jeton nominatif.
+		anonymous 0
+
+		# L'API de découverte des abonnés exposerait qui est connecté et quand.
+		subscriptions 0
+
+		# Aucune directive `cors_origins` : le hub est servi par le même Caddy, sur
+		# la même origine que l'application (API.md §3), donc aucune requête n'est
+		# inter-origine. La ligne précédente, `cors_origins {$MERCURE_CORS_ORIGINS:}`,
+		# se réduisait à `cors_origins` sans argument dès que la variable n'était pas
+		# fournie — ce qui est une erreur de syntaxe : Caddy refusait de démarrer, et
+		# le conteneur redémarrait en boucle.
+	}
+
+	header {
+		# Le chiffrement de bout en bout ne protège pas contre du code injecté
+		# dans la page : une CSP stricte est ici une brique de sécurité, pas une
+		# formalité. 'wasm-unsafe-eval' est volontairement absent — Locket
+		# n'utilise aucun WebAssembly.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Permissions-Policy "geolocation=(), camera=(self), microphone=(self), interest-cohort=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-X-Powered-By
+	}
+
+	# Le service worker doit rester non mis en cache, sinon une version obsolète
+	# peut persister plusieurs jours chez les utilisateurs.
+	@serviceworker path /sw.js
+	header @serviceworker {
+		Cache-Control "no-cache, no-store, must-revalidate"
+		Service-Worker-Allowed "/"
+	}
+
+	# Les bundles portent une empreinte dans leur nom : ils sont immuables.
+	@immutable path /build/assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Les médias sont des blobs chiffrés soumis à la rétention de 7 jours :
+	# aucun cache intermédiaire ne doit en conserver de copie.
+	@media path /api/media/*
+	header @media Cache-Control "private, no-store"
+
+	php_server {
+		# Les fichiers absents tombent sur index.php : le routage des URL
+		# applicatives (/c/<uuid>, /j, /reglages) est géré par Symfony.
+		try_files {path} index.php
+	}
+}
+
+# --- Écoute interne au conteneur ---
+#
+# Le port 8080 n'est pas publié : il n'est joignable que depuis l'intérieur du
+# conteneur. Il sert deux appels qui, autrement, devraient sortir puis revenir
+# par le nom de domaine public :
+#
+#   1. la sonde de disponibilité de Docker — un `curl http://127.0.0.1/health`
+#      sur le bloc ci-dessus porte l'en-tête « Host: 127.0.0.1 », qui ne
+#      correspond à aucun site dès que SERVER_NAME est un vrai domaine ;
+#   2. la publication Mercure du serveur d'application vers son propre hub
+#      (MERCURE_URL), qui doit rester une boucle locale.
+#
+# Ce bloc ne sert donc jamais de trafic public, et n'a pas à porter les en-têtes
+# de sécurité du site principal.
+http://localhost:8080 {
+	root /app/public
+
+	mercure {
+		publisher_jwt {$MERCURE_JWT_SECRET}
+		subscriber_jwt {$MERCURE_JWT_SECRET}
+		anonymous 0
+		subscriptions 0
+	}
+
+	php_server {
+		try_files {path} index.php
+	}
+}

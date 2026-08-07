@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locket — la messagerie de la famille</title>
+<meta name="description" content="Messagerie familiale chiffrée de bout en bout. Les messages disparaissent au bout de 7 jours. Auto-hébergeable, libre.">
+<!-- Icône embarquée : cette page est publiable seule (GitHub Pages, hébergement
+     statique). Toute référence hors de son répertoire donnerait un 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%238b3e13'/%3E%3Cg fill='none' stroke='%23fff5e8' stroke-width='7' stroke-linecap='round'%3E%3Ccircle cx='50' cy='20' r='9'/%3E%3Cellipse cx='50' cy='60' rx='24' ry='29'/%3E%3Cpath d='M50 31v58'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+/* Page autonome : aucune dépendance réseau, une seule feuille de style.
+   La palette et la typographie sont celles de l'application — la page de
+   présentation et le produit doivent se ressembler. */
+:root {
+  --fond: #f6ede0;
+  --fond-carte: #fffdf9;
+  --fond-creux: #e9ddcd;
+  --texte: #2b211b;
+  --texte-doux: #6b5c4e;
+  --accent: #8b3e13;
+  --accent-clair: #f7e2d2;
+  --bordure: #ded0bd;
+  --e1: .5rem; --e2: 1rem; --e3: 1.5rem; --e4: 2rem; --e5: 3rem; --e6: 5rem;
+  --rayon: 18px;
+  --ombre: 0 1px 2px rgb(43 33 27/5%), 0 12px 32px -12px rgb(43 33 27/18%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #17120f;
+    --fond-carte: #241d18;
+    --fond-creux: #100c0a;
+    --texte: #f5ece3;
+    --texte-doux: #b3a596;
+    --accent: #f0996a;
+    --accent-clair: #3a2a1d;
+    --bordure: #382e27;
+    --ombre: 0 1px 2px rgb(0 0 0/30%), 0 12px 32px -12px rgb(0 0 0/55%);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: ui-serif, Georgia, "Times New Roman", serif; line-height: 1.15; letter-spacing: -.015em; }
+a { color: var(--accent); }
+.enveloppe { max-width: 62rem; margin-inline: auto; padding-inline: var(--e3); }
+
+/* --- Bandeau d'ouverture --- */
+header { padding-block: var(--e6) var(--e5); text-align: center; }
+.medaillon { width: 84px; height: 84px; margin-bottom: var(--e3); }
+h1 { font-size: clamp(2.4rem, 7vw, 3.6rem); margin: 0 0 var(--e2); }
+.accroche { font-size: clamp(1.1rem, 3vw, 1.35rem); color: var(--texte-doux); max-width: 34rem; margin: 0 auto var(--e4); text-wrap: balance; }
+.actions { display: flex; gap: var(--e2); justify-content: center; flex-wrap: wrap; }
+.bouton {
+  display: inline-block; padding: .85rem 1.6rem; border-radius: 999px;
+  background: var(--accent); color: var(--fond-carte);
+  font-weight: 600; text-decoration: none;
+  transition: transform .12s cubic-bezier(.2,.8,.2,1), filter .12s linear;
+}
+.bouton:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.bouton.creux { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+/* --- Partis pris --- */
+.piliers { display: grid; gap: var(--e3); grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); margin-block: var(--e6); }
+.pilier { background: var(--fond-carte); border: 1px solid var(--bordure); border-radius: var(--rayon); padding: var(--e3); box-shadow: var(--ombre); }
+.pilier h3 { margin: 0 0 var(--e1); font-size: 1.25rem; }
+.pilier p { margin: 0; color: var(--texte-doux); }
+
+/* --- Installation --- */
+section { margin-block: var(--e6); }
+section > h2 { font-size: clamp(1.7rem, 4vw, 2.2rem); margin: 0 0 var(--e2); }
+.intro { color: var(--texte-doux); max-width: 44rem; margin: 0 0 var(--e3); }
+pre {
+  background: var(--fond-creux); border: 1px solid var(--bordure); border-radius: var(--rayon);
+  padding: var(--e3); overflow-x: auto; margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .9rem; line-height: 1.7;
+}
+pre .c { color: var(--texte-doux); }
+
+/* --- Honnêteté --- */
+.limites { background: var(--accent-clair); border-radius: var(--rayon); padding: var(--e4); }
+.limites h2 { margin-top: 0; }
+.limites ul { margin: 0; padding-left: 1.2rem; }
+.limites li + li { margin-top: var(--e2); }
+.limites strong { font-weight: 600; }
+
+/* --- Comparatif --- */
+.tableau { overflow-x: auto; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--fond-carte); }
+table { border-collapse: collapse; width: 100%; min-width: 34rem; }
+th, td { padding: .85rem var(--e2); text-align: left; border-bottom: 1px solid var(--bordure); }
+thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--texte-doux); font-weight: 600; }
+tbody tr:last-child td { border-bottom: none; }
+td.oui { color: var(--accent); font-weight: 600; }
+
+footer { border-top: 1px solid var(--bordure); padding-block: var(--e4) var(--e5); color: var(--texte-doux); font-size: .95rem; text-align: center; }
+footer a { color: inherit; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="enveloppe">
+  <!-- Le médaillon : un objet qu'on porte contre soi, qui s'ouvre sur ce qui
+       compte et se referme. C'est la métaphore du produit, pas une décoration. -->
+  <svg class="medaillon" viewBox="0 0 100 100" fill="none" stroke="currentColor"
+       stroke-width="4.5" stroke-linecap="round" aria-hidden="true" style="color: var(--accent)">
+    <circle cx="50" cy="17" r="9"/>
+    <ellipse cx="50" cy="60" rx="26" ry="31"/>
+    <path d="M50 29v62"/>
+  </svg>
+
+  <h1>La messagerie de la famille</h1>
+  <p class="accroche">
+    Chiffrée de bout en bout. Effacée au bout de sept jours.
+    Hébergée chez vous, pas chez quelqu'un d'autre.
+  </p>
+  <div class="actions">
+    <a class="bouton" href="#installer">Installer chez soi</a>
+    <a class="bouton creux" href="https://github.com/votre-compte/locket">Voir le code</a>
+  </div>
+</header>
+
+<main class="enveloppe">
+
+  <div class="piliers">
+    <article class="pilier">
+      <h3>Rien ne s'accumule</h3>
+      <p>
+        Tous les messages disparaissent au bout de sept jours, sur le serveur comme sur
+        chaque téléphone. Pas d'épinglage, pas de favoris, pas de réglage à trouver.
+      </p>
+    </article>
+    <article class="pilier">
+      <h3>Personne ne lit par-dessus votre épaule</h3>
+      <p>
+        Pas même la machine qui transporte les messages, ni la personne qui l'héberge.
+        Et il n'existe aucune porte dérobée parentale : un administrateur gère les
+        membres, il ne lit pas leurs conversations.
+      </p>
+    </article>
+    <article class="pilier">
+      <h3>Un seul groupe</h3>
+      <p>
+        Toute la famille, plus des conversations en tête-à-tête. Personne ne se demande
+        jamais où écrire, et aucun groupe d'exclusion ne peut se former entre frères
+        et sœurs.
+      </p>
+    </article>
+  </div>
+
+  <section id="installer">
+    <h2>Installer chez soi</h2>
+    <p class="intro">
+      Une machine, un nom de domaine, et une commande. Ni base de données à configurer,
+      ni serveur de cache, ni reverse proxy : le certificat HTTPS est obtenu tout seul.
+    </p>
+<pre><span class="c"># Récupérer le projet</span>
+git clone https://github.com/votre-compte/locket.git
+cd locket
+
+<span class="c"># Démarrer — le certificat est obtenu automatiquement</span>
+SERVER_NAME=locket.mafamille.fr \
+ADMIN_EMAIL=vous@example.com \
+docker compose up -d</pre>
+    <p class="intro" style="margin-top: var(--e3)">
+      Ouvrez ensuite votre domaine : un assistant vous guide pour créer votre espace.
+      Le <a href="https://github.com/votre-compte/locket/blob/main/docs/INSTALLATION.md">guide d'installation</a> détaille chaque étape,
+      et le <a href="https://github.com/votre-compte/locket/blob/main/docs/DEPANNAGE.md">guide de dépannage</a> couvre les cas qui coincent.
+    </p>
+  </section>
+
+  <section>
+    <h2>Ce que le serveur sait de vous</h2>
+    <div class="tableau">
+      <table>
+        <thead>
+          <tr><th>Le serveur connaît</th><th>Le serveur ne peut pas</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Les prénoms et qui parle à qui</td><td class="oui">Lire un message, une photo, un vocal</td></tr>
+          <tr><td>Les clés <em>publiques</em> des appareils</td><td class="oui">Fabriquer une approbation d'appareil</td></tr>
+          <tr><td>Les horaires et les tailles</td><td class="oui">Vous imposer sa propre clé de conversation</td></tr>
+          <tr><td>Les empreintes des invitations</td><td class="oui">Retrouver un code secret</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="limites">
+    <h2>Ce que Locket ne fait pas</h2>
+    <ul>
+      <li>
+        <strong>Pas d'appels audio ni vidéo.</strong> Vos proches ont déjà de quoi
+        s'appeler. Les ajouter aurait rendu l'installation bien plus difficile, pour un
+        bénéfice qui existe ailleurs.
+      </li>
+      <li>
+        <strong>Pas de confidentialité persistante par message.</strong> La compromission
+        d'une clé expose les messages de la période concernée — bornée à sept jours. Nous
+        préférons l'écrire que de le laisser deviner.
+      </li>
+      <li>
+        <strong>Les métadonnées ne sont pas chiffrées.</strong> Le serveur sait qui écrit
+        à qui, et quand. Les masquer demanderait une architecture entièrement différente.
+      </li>
+      <li>
+        <strong>Perdre tous ses appareils, c'est perdre ses messages.</strong> Aucune clé
+        n'est conservée sur le serveur. Le coût est faible : ils ne valaient que sept jours.
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="enveloppe">
+  <p>
+    Logiciel libre sous licence AGPL-3.0 —
+    <a href="https://github.com/votre-compte/locket">code source</a> ·
+    <a href="https://github.com/votre-compte/locket/blob/main/docs/SECURITE.md">modèle de sécurité</a> ·
+    <a href="https://github.com/votre-compte/locket/blob/main/docs/PROTOCOL.md">protocole</a>
+  </p>
+  <p>Une messagerie qui promet la confidentialité doit pouvoir être vérifiée.</p>
+</footer>
+
+</body>
+</html>

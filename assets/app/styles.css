@@ -1,0 +1,1728 @@
+/**
+ * Feuille de style de Locket.
+ *
+ * Contrainte de conception dominante : l'utilisatrice la plus âgée doit pouvoir
+ * s'en servir sans lunettes de lecture et sans geste fin. D'où un corps de texte
+ * à 18 px, des cibles tactiles d'au moins 48 px, et des contrastes largement
+ * au-dessus du minimum AA.
+ *
+ * Direction visuelle : « médaillon ». Locket, c'est le bijou qu'on porte contre
+ * soi, qui s'ouvre sur ce qui compte et se referme. D'où une matière chaude
+ * (papier sable, terre cuite, crème), une typographie de titre à empattements
+ * (Fraunces) posée sur une typographie d'interface très ouverte (Figtree), et
+ * des surfaces qui se distinguent par la lumière plutôt que par le trait.
+ *
+ * Tout passe par des jetons. Aucune valeur de couleur, de taille, d'espacement,
+ * de rayon, d'ombre ou de durée n'est écrite en dur ailleurs que dans :root.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   1. POLICES AUTO-HÉBERGÉES
+   La pile système faisait prendre trois identités différentes à l'application
+   selon l'OS (Segoe UI sur Windows, San Francisco sur Apple, Roboto ailleurs).
+   Deux fontes variables OFL, servies depuis l'instance : aucune requête tierce,
+   ce qui compte pour une application qui promet de ne rien fuiter.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   2. JETONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---- Couleurs, thème clair ------------------------------------------
+     Les ratios notés sont calculés (WCAG 2.1). Le fond du fil est
+     volontairement plus profond que les cartes : c'est ce qui donne enfin
+     une existence visuelle aux bulles reçues (1,52:1 contre 1,07:1 avant),
+     sans avoir à les éclaircir — elles sont déjà blanches. */
+  --fond: #e9ddcd; /* toile de fond des écrans */
+  --fond-fil: #dccebb; /* fond du fil, plus profond encore */
+  --fond-eleve: #fffdf9; /* cartes, bulles reçues, en-tête, composeur */
+  --fond-doux: #d3c2a9; /* surfaces secondaires, boutons discrets */
+  --bordure: #cbbaa2;
+  --bordure-forte: #b5a184;
+
+  --texte: #2a1f18; /* 15,8:1 sur --fond-eleve */
+  --texte-doux: #5c4d43; /* 7,9:1 sur --fond-eleve, 5,2:1 sur --fond-fil */
+
+  --accent: #8b3e13; /* 7,4:1 sur --fond-eleve */
+  --accent-clair: #f7e6d8;
+  --accent-contraste: #fffdf9; /* 7,4:1 sur --accent */
+
+  --bulle-moi: #8b3e13;
+  --bulle-moi-texte: #fffdf9;
+  --bulle-autre: #fffdf9;
+
+  --danger: #9e2019; /* 7,7:1 sur --fond-eleve */
+  --danger-surface: #9e2019;
+  --danger-contraste: #fff5f4; /* 7,3:1 sur --danger-surface */
+  --succes: #1f5c33; /* 7,8:1 sur --fond-eleve */
+
+  /* Anneau de focus en deux tons : un liseré clair collé à l'élément, puis un
+     anneau sombre. Quelle que soit la surface — y compris un bouton terracotta,
+     où un anneau terracotta était invisible — l'un des deux tranche toujours. */
+  --focus: #2a1f18;
+  --focus-liseré: #fffdf9;
+
+  /* ---- Typographie : 6 niveaux, pas un de plus ------------------------- */
+  --police: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --police-titre: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+
+  --texte-xs: 0.8125rem; /* 13 px — mentions légales, horodatage */
+  --texte-s: 0.9375rem; /* 15 px — texte secondaire */
+  --texte-m: 1.125rem; /* 18 px — corps. Plancher imposé par la lisibilité. */
+  --texte-l: 1.3125rem; /* 21 px — titres de section, en-têtes */
+  --texte-xl: 1.75rem; /* 28 px — titres d'écran */
+  --texte-2xl: 2.375rem; /* 38 px — marque, code d'appairage */
+
+  --graisse-normale: 400;
+  --graisse-moyenne: 550;
+  --graisse-forte: 700;
+
+  /* ---- Espacement : une seule échelle, 9 pas -------------------------- */
+  --e-0: 0.125rem; /* 2 */
+  --e-1: 0.25rem; /* 4 */
+  --e-2: 0.5rem; /* 8 */
+  --e-3: 0.75rem; /* 12 */
+  --e-4: 1rem; /* 16 */
+  --e-5: 1.5rem; /* 24 */
+  --e-6: 2rem; /* 32 */
+  --e-7: 3rem; /* 48 */
+  --e-8: 4rem; /* 64 */
+
+  /* ---- Rayons : 6 valeurs -------------------------------------------- */
+  --rayon-xs: 0.375rem; /* 6 — coin « soudé » d'une grappe de messages */
+  --rayon-s: 0.625rem; /* 10 — pastilles, étiquettes */
+  --rayon-m: 0.875rem; /* 14 — champs, boutons */
+  --rayon-l: 1.25rem; /* 20 — bulles, cartes */
+  --rayon-xl: 1.75rem; /* 28 — cadre d'application sur grand écran */
+  --ic-lecture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M8 5.5v13l11-6.5z'/%3E%3C/svg%3E");
+  --ic-pause: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M7 5h3.2v14H7zM13.8 5H17v14h-3.2z'/%3E%3C/svg%3E");
+  --ic-groupe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3.5 19c0-3 2.5-4.8 5.5-4.8s5.5 1.8 5.5 4.8'/%3E%3Cpath d='M16 5.6a3.2 3.2 0 0 1 0 6.2'/%3E%3Cpath d='M17.5 14.6c2.1.5 3.5 2.1 3.5 4.4'/%3E%3C/svg%3E");
+  --rayon-rond: 999px;
+
+  /* ---- Élévations : 3 niveaux ---------------------------------------- */
+  --ombre-teinte: 42 31 24;
+  --elevation-1: 0 1px 2px rgb(var(--ombre-teinte) / 6%), 0 2px 6px rgb(var(--ombre-teinte) / 7%);
+  --elevation-2: 0 2px 4px rgb(var(--ombre-teinte) / 8%), 0 10px 24px rgb(var(--ombre-teinte) / 10%);
+  --elevation-3: 0 6px 12px rgb(var(--ombre-teinte) / 10%), 0 28px 56px rgb(var(--ombre-teinte) / 18%);
+
+  /* ---- Mouvement -----------------------------------------------------
+     Aucune animation ne dépasse 320 ms, ne déplace de plus de 8 px, ni ne
+     touche autre chose qu'opacity/transform : sur un vieil Android en 4G,
+     tout le reste coûte une recomposition. */
+  --duree-appui: 90ms;
+  --duree-courte: 160ms;
+  --duree-moyenne: 240ms;
+  --duree-longue: 320ms;
+  /* Deux boucles perpétuelles font exception au plafond de 320 ms : ce ne sont
+     pas des transitions mais des signaux de vie (« ça enregistre », « ça
+     charge »). À 320 ms, elles clignoteraient au lieu de respirer. */
+  --duree-pouls: 1.2s;
+  --duree-boucle: 1.6s;
+  --courbe-sortie: cubic-bezier(0.2, 0.9, 0.3, 1); /* arrivée, décélère */
+  --courbe-douce: cubic-bezier(0.4, 0, 0.2, 1); /* aller-retour */
+
+  --cible-min: 48px;
+
+  /* ---- Jeu d'icônes monotrait ----------------------------------------
+     Des masques SVG plutôt que des emoji : un emoji n'a ni la même graisse,
+     ni le même alignement, ni la même couleur d'un système à l'autre — trois
+     appareils de la famille, trois interfaces différentes. Ici, une seule. */
+  --ic-retour: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 4 7 12l8 8'/%3E%3C/svg%3E");
+  --ic-menu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3C/svg%3E");
+  /* Administration = gestion des accès, jamais lecture des conversations. Un
+     bouclier le dit mieux qu'un engrenage, qui promettrait des « options ». */
+  --ic-admin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.5 4.5 5.6v5.9c0 4.6 3.1 8.4 7.5 9.9 4.4-1.5 7.5-5.3 7.5-9.9V5.6z'/%3E%3Cpath d='m8.8 12 2.3 2.3 4.1-4.6'/%3E%3C/svg%3E");
+  --ic-photo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5A2 2 0 0 1 5 6.5h2.2l1.3-2.2h7l1.3 2.2H19a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='12.8' r='3.6'/%3E%3C/svg%3E");
+  --ic-micro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='2' width='6' height='11' rx='3'/%3E%3Cpath d='M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7'/%3E%3C/svg%3E");
+  --ic-envoyer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.5 12 3 4.5l3 7.5-3 7.5z'/%3E%3Cpath d='M6 12h15.5'/%3E%3C/svg%3E");
+  --ic-reagir: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8.2 14.2a4.6 4.6 0 0 0 7.6 0'/%3E%3Cpath d='M9 9.2h.01M15 9.2h.01' stroke-width='2.6'/%3E%3C/svg%3E");
+  --ic-repondre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 14.5 3.5 9 9 3.5'/%3E%3Cpath d='M20.5 20.5v-6A5.5 5.5 0 0 0 15 9H3.5'/%3E%3C/svg%3E");
+}
+
+/* ---- Thème sombre ------------------------------------------------------
+   Mêmes rôles, mêmes ratios, jamais les mêmes valeurs : en sombre, les
+   surfaces accent portent du texte foncé (un aplat pêche avec du blanc
+   dessus plafonnait à 2,49:1, illisible). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #17130f;
+    --fond-fil: #0d0b0a;
+    --fond-eleve: #3a2f28; /* 1,51:1 sur --fond-fil, contre 1,22:1 avant */
+    --fond-doux: #483b33;
+    --bordure: #52443a;
+    --bordure-forte: #6d5b4e;
+
+    --texte: #f6efe6; /* 17,0:1 sur --fond-fil */
+    --texte-doux: #c0aea0; /* 9,0:1 sur --fond-fil, 6,1:1 sur --fond-eleve */
+
+    --accent: #f0996a; /* 8,3:1 sur --fond */
+    --accent-clair: #3a2318;
+    --accent-contraste: #2a1408; /* 7,9:1 sur --accent */
+
+    --bulle-moi: #7d3a13;
+    --bulle-moi-texte: #ffeadd; /* 7,3:1 sur --bulle-moi */
+    --bulle-autre: #3a2f28;
+
+    --danger: #ff9a90; /* 9,6:1 sur --fond-fil */
+    --danger-surface: #ffb3a8;
+    --danger-contraste: #3d0a06; /* 9,9:1 sur --danger-surface */
+    --succes: #9ee0b0;
+
+    --focus: #f6efe6;
+    --focus-liseré: #17130f;
+
+    --ombre-teinte: 0 0 0;
+    --elevation-1: 0 1px 2px rgb(var(--ombre-teinte) / 30%), 0 2px 6px rgb(var(--ombre-teinte) / 26%);
+    --elevation-2: 0 2px 4px rgb(var(--ombre-teinte) / 34%), 0 10px 24px rgb(var(--ombre-teinte) / 40%);
+    --elevation-3: 0 6px 12px rgb(var(--ombre-teinte) / 40%), 0 28px 56px rgb(var(--ombre-teinte) / 55%);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3. BASE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  block-size: 100%;
+}
+
+body {
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police);
+  font-size: var(--texte-m);
+  font-weight: var(--graisse-normale);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--police-titre);
+  font-weight: var(--graisse-forte);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  block-size: 100dvh;
+  max-inline-size: 780px;
+  margin-inline: auto;
+  background: var(--fond);
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   4. BOUTONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+button,
+.bouton-icone {
+  font: inherit;
+  min-block-size: var(--cible-min);
+  padding: var(--e-3) var(--e-5);
+  border: none;
+  border-radius: var(--rayon-m);
+  background: var(--accent);
+  color: var(--accent-contraste);
+  font-weight: var(--graisse-moyenne);
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition:
+    background-color var(--duree-courte) var(--courbe-douce),
+    box-shadow var(--duree-courte) var(--courbe-douce),
+    transform var(--duree-appui) var(--courbe-douce),
+    opacity var(--duree-courte) var(--courbe-douce);
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, var(--texte));
+}
+
+/* Retour tactile : sur un écran, l'enfoncement est la seule confirmation que
+   l'appui a été pris en compte avant que le réseau ne réponde. */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.secondaire {
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+button.secondaire:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fond-doux) 85%, var(--texte));
+}
+
+/* Le destructif se distingue par son TRAIT, pas par un aplat : côte à côte,
+   deux pastilles pleines de teinte voisine se confondaient (1,05:1 de
+   séparation en clair, 1,30:1 en sombre). L'aplat est réservé à la
+   confirmation finale. */
+button.danger {
+  background: var(--danger-surface);
+  color: var(--danger-contraste);
+}
+
+button.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger-surface) 88%, var(--texte));
+}
+
+/* `.discret` promettait 48 px et en faisait 28. La surface peinte reste
+   légère, la cible réelle est portée à 48 px par un ::after transparent —
+   c'est la commande la plus utilisée par le public le moins précis. */
+button.discret {
+  position: relative;
+  min-block-size: 40px;
+  padding: var(--e-2) var(--e-3);
+  background: none;
+  color: var(--texte-doux);
+  font-weight: var(--graisse-moyenne);
+}
+
+button.discret::after {
+  content: '';
+  position: absolute;
+  inset-block: -4px;
+  inset-inline: 0;
+}
+
+button.discret:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--texte) 8%, transparent);
+  color: var(--texte);
+}
+
+.bouton-icone {
+  display: grid;
+  place-items: center;
+  min-inline-size: var(--cible-min);
+  padding: 0;
+  border-radius: var(--rayon-rond);
+  background: none;
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.bouton-icone:hover {
+  background: color-mix(in srgb, var(--texte) 8%, transparent);
+}
+
+/* ---- Icônes : le texte de la balise reste (lecteurs d'écran, tests),
+   seule sa taille tombe à zéro ; le glyphe est peint par un masque. ---- */
+.bouton-icone[data-action='retour'],
+a.bouton-icone[href='/'],
+.bouton-icone[data-action='reglages'],
+a.bouton-icone[href='/admin'],
+.bouton-icone[data-action='joindre-photo'],
+.bouton-icone[data-action='enregistrer-vocal'],
+.composeur button[type='submit'],
+.meta button[data-action='reagir'],
+.meta button[data-action='repondre'] {
+  font-size: 0;
+  line-height: 0;
+}
+
+.bouton-icone[data-action='retour']::before,
+a.bouton-icone[href='/']::before,
+.bouton-icone[data-action='reglages']::before,
+a.bouton-icone[href='/admin']::before,
+.bouton-icone[data-action='joindre-photo']::before,
+.bouton-icone[data-action='enregistrer-vocal']::before,
+.composeur button[type='submit']::before,
+.meta button[data-action='reagir']::before,
+.meta button[data-action='repondre']::before {
+  content: '';
+  display: block;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  background: currentcolor;
+  mask: var(--ic) center / contain no-repeat;
+  -webkit-mask: var(--ic) center / contain no-repeat;
+}
+
+.bouton-icone[data-action='retour'],
+a.bouton-icone[href='/'] {
+  --ic: var(--ic-retour);
+}
+
+.bouton-icone[data-action='reglages'] {
+  --ic: var(--ic-menu);
+}
+
+a.bouton-icone[href='/admin'] {
+  --ic: var(--ic-admin);
+}
+
+.bouton-icone[data-action='joindre-photo'] {
+  --ic: var(--ic-photo);
+}
+
+.bouton-icone[data-action='enregistrer-vocal'] {
+  --ic: var(--ic-micro);
+}
+
+.composeur button[type='submit'] {
+  --ic: var(--ic-envoyer);
+}
+
+.meta button[data-action='reagir'] {
+  --ic: var(--ic-reagir);
+}
+
+.meta button[data-action='repondre'] {
+  --ic: var(--ic-repondre);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   5. FOCUS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Deux anneaux concentriques de valeurs opposées. Sur un bouton terracotta,
+   l'ancien anneau terracotta disparaissait purement et simplement ; ici le
+   liseré clair colle à l'élément et l'anneau sombre le cerne — ou l'inverse
+   en thème sombre. Aucune surface de l'application ne peut avaler les deux. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--focus-liseré);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   6. FORMULAIRES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Le liseré des champs est le SEUL repère de leur zone de saisie : à 1,86:1 il
+   passait sous le seuil des éléments non textuels (3:1), sur le premier écran
+   et pour le public le moins à l'aise. */
+input,
+textarea {
+  font: inherit;
+  inline-size: 100%;
+  min-block-size: var(--cible-min);
+  padding: var(--e-3) var(--e-4);
+  border: 2px solid var(--bordure);
+  border-radius: var(--rayon-m);
+  background: var(--fond-eleve);
+  color: var(--texte);
+  transition:
+    border-color var(--duree-courte) var(--courbe-douce),
+    box-shadow var(--duree-courte) var(--courbe-douce);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--texte-doux);
+  opacity: 1; /* Firefox l'affaiblit par défaut : 3:1, illisible à 70 ans. */
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+label {
+  display: block;
+  margin-block-end: var(--e-2);
+  font-weight: var(--graisse-moyenne);
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   7. ÉCRANS CENTRÉS, MARQUE, CARTES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ecran-centre {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--e-4);
+  padding: var(--e-5);
+  overflow-y: auto;
+  animation: entree-ecran var(--duree-longue) var(--courbe-sortie) both;
+}
+
+.marque {
+  text-align: center;
+  margin-block-end: var(--e-2);
+}
+
+.marque h1 {
+  margin: 0;
+  font-size: var(--texte-2xl);
+  font-variation-settings: 'opsz' 96;
+}
+
+.marque p {
+  margin: var(--e-2) 0 0;
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: var(--graisse-moyenne);
+}
+
+.carte {
+  background: var(--fond-eleve);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-l);
+  padding: var(--e-5);
+  box-shadow: var(--elevation-1);
+}
+
+.carte h3 {
+  margin-block: 0 var(--e-3);
+  font-size: var(--texte-l);
+}
+
+.carte p {
+  margin-block: 0 var(--e-4);
+}
+
+.carte p:last-child {
+  margin-block-end: 0;
+}
+
+.carte ul {
+  padding-inline-start: var(--e-5);
+  margin-block: 0;
+}
+
+.carte ul li + li {
+  margin-block-start: var(--e-2);
+}
+
+.carte > button + button {
+  margin-block-start: var(--e-3);
+}
+
+.champ + .champ {
+  margin-block-start: var(--e-4);
+}
+
+.pleine-largeur {
+  inline-size: 100%;
+}
+
+.message-erreur,
+.message-info {
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--rayon-m);
+  font-size: var(--texte-s);
+  margin-block: 0 var(--e-4);
+}
+
+.message-erreur {
+  background: color-mix(in srgb, var(--danger) 14%, var(--fond-eleve));
+  border-inline-start: var(--e-1) solid var(--danger);
+  color: var(--danger);
+  font-weight: var(--graisse-moyenne);
+}
+
+.message-info {
+  background: var(--accent-clair);
+  border-inline-start: var(--e-1) solid var(--accent);
+  color: var(--texte);
+}
+
+.conseil {
+  margin: var(--e-2) 0 0;
+  font-size: var(--texte-s);
+  color: var(--texte-doux);
+}
+
+/* L'identifiant de connexion est la seule chaîne que l'utilisateur devra
+   recopier plus tard : on la traite comme le code d'appairage, en plus sobre. */
+.identifiant-mis-en-avant {
+  margin-block: 0 var(--e-4);
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--rayon-m);
+  border: 1px dashed var(--accent);
+  background: var(--accent-clair);
+  color: var(--accent);
+  font-size: var(--texte-l);
+  font-weight: var(--graisse-forte);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Marche à suivre numérotée : la pastille chiffrée aide à ne pas perdre sa
+   place quand on lève les yeux vers son téléphone entre deux étapes. */
+.etapes {
+  list-style: none;
+  counter-reset: etape;
+  margin-block: 0 var(--e-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+.etapes li {
+  counter-increment: etape;
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: var(--e-3);
+  align-items: start;
+  font-size: var(--texte-s);
+}
+
+.etapes li::before {
+  content: counter(etape);
+  display: grid;
+  place-items: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: var(--rayon-rond);
+  background: var(--accent-clair);
+  color: var(--accent);
+  font-weight: var(--graisse-forte);
+  font-size: var(--texte-xs);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   8. CODE D'APPAIRAGE
+   Le seul moment où l'application demande de lire des chiffres à voix haute :
+   ils doivent être énormes, espacés, et à chasse fixe pour éviter toute
+   confusion entre deux appareils.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.code-appairage {
+  font-size: clamp(var(--texte-xl), 8vw, var(--texte-2xl));
+  font-family: var(--police-titre);
+  font-weight: var(--graisse-forte);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  text-align: center;
+  padding: var(--e-5) var(--e-4);
+  margin-block: 0 var(--e-4);
+  border-radius: var(--rayon-l);
+  background: var(--accent-clair);
+  border: 1px dashed var(--accent);
+  /* Ces chiffres se lisent à voix haute et se comparent un à un entre deux
+     appareils : ils relèvent du critère strict (≥ 7:1). Le terracotta pur ne
+     donnait que 6,2:1 sur --accent-clair, on l'assombrit d'un cinquième. */
+  color: color-mix(in srgb, var(--accent) 80%, var(--texte));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   9. EN-TÊTE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-2) var(--e-3);
+  padding-block-start: max(var(--e-2), env(safe-area-inset-top));
+  border-block-end: 1px solid var(--bordure);
+  background: var(--fond-eleve);
+  box-shadow: var(--elevation-1);
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.entete h2 {
+  flex: 1;
+  margin: 0;
+  padding-inline: var(--e-2);
+  font-size: var(--texte-l);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   10. LISTE DES CONVERSATIONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.liste-conversations {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--e-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+.conversation {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4);
+  inline-size: 100%;
+  min-block-size: 76px;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--rayon-l);
+  background: var(--fond-eleve);
+  border: 1px solid var(--bordure);
+  color: var(--texte);
+  text-align: start;
+  font-weight: var(--graisse-normale);
+  box-shadow: var(--elevation-1);
+  animation: entree-ligne var(--duree-moyenne) var(--courbe-sortie) both;
+}
+
+.conversation:hover {
+  background: var(--fond-eleve);
+  box-shadow: var(--elevation-2);
+  transform: translateY(-1px);
+}
+
+.conversation:active {
+  transform: scale(0.99);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 52px;
+  block-size: 52px;
+  border-radius: var(--rayon-rond);
+  background: var(--accent-clair);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  font-family: var(--police-titre);
+  font-size: var(--texte-l);
+  font-weight: var(--graisse-forte);
+  line-height: 1;
+}
+
+/* Ouvrir une conversation à deux est une création, pas une entrée de liste :
+   le trait discontinu le dit sans avoir à l'écrire. */
+.conversation.nouvelle-conversation {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--bordure-forte);
+  box-shadow: none;
+}
+
+.conversation.nouvelle-conversation .avatar {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--accent);
+  font-size: var(--texte-xl);
+  font-family: var(--police);
+  font-weight: var(--graisse-normale);
+}
+
+.conversation.nouvelle-conversation:hover {
+  background: color-mix(in srgb, var(--fond-eleve) 60%, transparent);
+  box-shadow: none;
+}
+
+.conversation-corps {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.conversation-nom {
+  display: block;
+  font-weight: var(--graisse-moyenne);
+  font-size: var(--texte-m);
+}
+
+.conversation-apercu {
+  display: block;
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   11. FIL DE DISCUSSION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.fil {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: clip; /* la gouttière d'actions ne doit jamais créer de défilement */
+  padding: var(--e-4) var(--e-3) var(--e-5);
+  display: flex;
+  flex-direction: column;
+  /* PIÈGE : sans align-items, les enfants d'un conteneur flex sont étirés.
+     `.ligne-message` occupait donc ses 78 % (583 px) quel que soit le texte,
+     et la bulle avec. C'était le défaut le plus visible du produit. */
+  align-items: flex-start;
+  gap: var(--e-3);
+  background: var(--fond-fil);
+}
+
+/* Rappel unique des 7 jours, en tête de fil. Il appartient visuellement au fil
+   (même fond) : c'est une note en marge, pas une alerte. */
+.note-fil {
+  margin: 0;
+  padding: var(--e-3) var(--e-4) var(--e-2);
+  background: var(--fond-fil);
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  text-align: center;
+  text-wrap: balance;
+  flex-shrink: 0;
+}
+
+/* Séparateur de journée. Le sélecteur visait auparavant `.fil > .meta`, qui ne
+   correspond à rien : les `.meta` sont toujours enfants de `.ligne-message`.
+   « Aujourd'hui » s'affichait donc en corps de texte brut, aligné à gauche. */
+.separateur-jour {
+  align-self: center;
+  margin-block: var(--e-3) var(--e-1);
+  padding: var(--e-1) var(--e-4);
+  border-radius: var(--rayon-rond);
+  background: color-mix(in srgb, var(--fond-eleve) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bordure) 60%, transparent);
+  color: var(--texte-doux);
+  font-size: var(--texte-xs);
+  font-weight: var(--graisse-moyenne);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.separateur-jour > span {
+  display: inline-block;
+}
+
+/* Avatar de la conversation de groupe. `views.js` n'y met aucun texte et se
+   repose sur `data-type` : sans cette règle, la conversation principale du
+   produit affichait un disque parfaitement vide sur le premier écran. */
+.avatar[data-type='group']::before {
+  content: '';
+  inline-size: 60%;
+  block-size: 60%;
+  background: currentcolor;
+  -webkit-mask: var(--ic-groupe) center / contain no-repeat;
+  mask: var(--ic-groupe) center / contain no-repeat;
+}
+
+.ligne-message {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Idem : sans cette ligne, bulle, méta et réactions s'étiraient toutes à la
+     largeur du plus large des trois. */
+  align-items: flex-start;
+  max-inline-size: 78%;
+  animation: entree-bulle var(--duree-moyenne) var(--courbe-sortie) both;
+}
+
+.ligne-message.mien {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* Ordre visuel : auteur, bulle, réactions, méta.
+   Dans le HTML les réactions viennent après la méta ; les remonter permet à la
+   pastille de chevaucher la bulle au lieu de flotter, détachée, deux lignes
+   plus bas. `order` évite d'avoir à toucher au balisage. */
+.ligne-message > .auteur {
+  order: 1;
+}
+
+.ligne-message > .bulle {
+  order: 2;
+}
+
+.ligne-message > .reactions {
+  order: 3;
+}
+
+.ligne-message > .meta {
+  order: 4;
+}
+
+.auteur {
+  font-size: var(--texte-xs);
+  font-weight: var(--graisse-forte);
+  color: var(--texte-doux);
+  margin-block-end: var(--e-1);
+  padding-inline: var(--e-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bulle {
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--rayon-l);
+  border-start-start-radius: var(--rayon-xs);
+  background: var(--bulle-autre);
+  border: 1px solid var(--bordure);
+  box-shadow: var(--elevation-1);
+  overflow-wrap: anywhere;
+  max-inline-size: 100%;
+}
+
+.mien .bulle {
+  background: var(--bulle-moi);
+  color: var(--bulle-moi-texte);
+  border-color: color-mix(in srgb, var(--bulle-moi) 70%, black);
+  border-start-start-radius: var(--rayon-l);
+  border-start-end-radius: var(--rayon-xs);
+}
+
+/* Grappe de messages consécutifs.
+   `views.js` pose lui-même `debut-grappe` / `suite` / `fin-grappe` : le
+   groupement vaut donc pour TOUS les auteurs, et non plus seulement pour ses
+   propres messages. Trois messages de Mamie forment enfin un bloc.
+   L'heure et les actions ne sont rendues qu'en fin de grappe, côté JavaScript :
+   aucune règle ne masque plus d'élément ici — masquer le premier `span` faisait
+   disparaître l'alerte d'expiration imminente quand l'heure était déjà absente. */
+.ligne-message.suite {
+  margin-block-start: calc(var(--e-3) * -1 + var(--e-1));
+}
+
+.ligne-message:not(.fin-grappe) .bulle {
+  border-end-start-radius: var(--rayon-xs);
+}
+
+.ligne-message.suite .bulle {
+  border-start-start-radius: var(--rayon-xs);
+}
+
+.ligne-message.mien:not(.fin-grappe) .bulle {
+  border-end-start-radius: var(--rayon-l);
+  border-end-end-radius: var(--rayon-xs);
+}
+
+.ligne-message.mien.suite .bulle {
+  border-start-start-radius: var(--rayon-l);
+  border-start-end-radius: var(--rayon-xs);
+}
+
+/* ---------------------------------------------------------------- vocal ---
+   Le lecteur natif est un corps étranger : barre grise, menu « ⋮ » impossible à
+   masquer de façon fiable, et minutage illisible sur un aplat terracotta. Celui-ci
+   est en trois éléments seulement — bouton, onde, durée — tous à la couleur du
+   texte de la bulle, donc lisibles dans les deux thèmes et des deux côtés du fil. */
+.vocal {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-inline-size: min(15rem, 60vw);
+}
+
+.vocal audio {
+  display: none;
+}
+
+.vocal-lecture {
+  flex: 0 0 auto;
+  inline-size: 44px;
+  block-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+  border-radius: var(--rayon-rond);
+  background: currentcolor;
+  display: grid;
+  place-items: center;
+}
+
+/* Le glyphe est un masque sur la couleur de la bulle : il reste lisible que la
+   bulle soit crème ou terracotta, sans jeu de variables supplémentaire. */
+.vocal-lecture::before {
+  content: '';
+  inline-size: 18px;
+  block-size: 18px;
+  background: var(--bulle-autre);
+  -webkit-mask: var(--ic-lecture) center / contain no-repeat;
+  mask: var(--ic-lecture) center / contain no-repeat;
+}
+
+.mien .vocal-lecture::before {
+  background: var(--bulle-moi);
+}
+
+.joue .vocal-lecture::before {
+  -webkit-mask-image: var(--ic-pause);
+  mask-image: var(--ic-pause);
+}
+
+.vocal-onde {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  block-size: 26px;
+}
+
+.vocal-onde i {
+  flex: 1;
+  block-size: var(--h, 40%);
+  border-radius: var(--rayon-rond);
+  background: currentcolor;
+  opacity: 0.3;
+  transition: opacity var(--duree-courte) linear;
+}
+
+.vocal-onde i.lu {
+  opacity: 0.95;
+}
+
+.vocal-duree {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--texte-s);
+  opacity: 0.8;
+}
+
+.bulle img {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--rayon-m);
+  background: var(--fond-doux);
+}
+
+.bulle p {
+  margin-block: var(--e-2) 0;
+}
+
+.bulle p:first-child {
+  margin-block-start: 0;
+}
+
+/* ---- Lecteur audio -----------------------------------------------------
+   Le lecteur natif reste (le remplacer demanderait du JS), mais on lui retire
+   ce qu'on peut : chrome sombre dans une bulle terracotta, coins arrondis,
+   largeur maîtrisée. Sans ça, une barre grise Chrome traverse la bulle. */
+.bulle audio {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: min(260px, 60vw);
+  max-inline-size: 100%;
+  block-size: 44px;
+  border-radius: var(--rayon-rond);
+  background: var(--fond-doux);
+}
+
+.mien .bulle audio {
+  /* Dans une bulle terracotta, les contrôles clairs de Chrome sont illisibles :
+     on bascule le lecteur en schéma sombre, ses glyphes passent en clair. */
+  color-scheme: dark;
+  background: color-mix(in srgb, black 22%, var(--bulle-moi));
+}
+
+.bulle audio::-webkit-media-controls-enclosure {
+  border-radius: var(--rayon-rond);
+  background: transparent;
+}
+
+.bulle audio::-webkit-media-controls-panel {
+  background: transparent;
+  padding-inline: var(--e-1);
+}
+
+/* Le menu « … » du lecteur natif propose téléchargement et vitesse de lecture :
+   deux commandes hors sujet ici, et deux occasions de se perdre. */
+.bulle audio::-webkit-media-controls-overflow-button,
+.bulle audio::-webkit-media-controls-mute-button {
+  display: none;
+}
+
+/* Enregistrer une photo : une action secondaire, à l'intérieur de la bulle.
+   Elle doit rester lisible sur les deux fonds de bulle. */
+button.enregistrer-photo {
+  margin-block-start: var(--e-2);
+  padding-inline: 0;
+  color: var(--accent);
+  font-size: var(--texte-s);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.enregistrer-photo:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+
+.mien button.enregistrer-photo,
+.mien button.enregistrer-photo:hover:not(:disabled) {
+  color: var(--bulle-moi-texte);
+}
+
+/* ---- Citation ----------------------------------------------------------
+   Le fond gris à 12 % disparaissait sur terracotta, et `currentcolor` faisait
+   virer le liseré au blanc sur blanc. Chaque contexte a désormais ses propres
+   valeurs, et l'opacité globale (qui abaissait le contraste du texte) saute. */
+.citation {
+  display: block;
+  padding: var(--e-2) var(--e-3);
+  margin-block-end: var(--e-2);
+  border-inline-start: var(--e-0) solid var(--accent);
+  border-radius: var(--rayon-xs);
+  background: color-mix(in srgb, var(--accent) 10%, var(--fond-eleve));
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+  line-height: 1.35;
+}
+
+.mien .citation {
+  border-inline-start-color: color-mix(in srgb, white 75%, transparent);
+  background: color-mix(in srgb, black 22%, transparent);
+  color: color-mix(in srgb, var(--bulle-moi-texte) 92%, transparent);
+}
+
+/* ---- Méta ------------------------------------------------------------- */
+
+.ligne-message > .meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-0) var(--e-3);
+  margin-block-start: var(--e-1);
+  padding-inline: var(--e-3);
+  font-size: var(--texte-xs);
+  color: var(--texte-doux);
+  min-block-size: 0;
+}
+
+.expiration {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.expiration.imminent {
+  color: var(--danger);
+  font-weight: var(--graisse-forte);
+}
+
+/* `--danger` et `--danger-surface` sont volontairement PROCHES : l'un est la
+   couleur du trait, l'autre celle d'un aplat plein. Les combiner donnait un
+   texte saumon sur fond saumon, illisible. Sur un aplat, c'est
+   `--danger-contraste` qu'il faut — le même piège que le bouton de suppression. */
+.note-attention {
+  color: var(--danger-contraste);
+  background: var(--danger-surface);
+  font-weight: var(--graisse-moyenne);
+}
+
+.signature-invalide {
+  color: var(--danger);
+  font-weight: var(--graisse-forte);
+}
+
+.signature-inconnue {
+  color: var(--texte-doux);
+  font-style: italic;
+}
+
+.illisible {
+  font-style: italic;
+  color: var(--texte-doux);
+}
+
+/* ---- Actions de message -------------------------------------------------
+   « Réagir » et « Répondre » écrits sous chaque message, c'est la signature
+   d'une maquette. Ils deviennent deux icônes posées dans la gouttière libre,
+   à côté de la bulle : révélées au survol et au focus clavier sur pointeur
+   fin, présentes en permanence mais muettes sur écran tactile (un appui long
+   n'est pas exprimable en CSS — voir le rapport). */
+.meta button[data-action='reagir'],
+.meta button[data-action='repondre'] {
+  position: absolute;
+  inset-block-start: var(--e-4);
+  inset-inline-start: 100%;
+  margin-inline-start: var(--e-1);
+  min-inline-size: 40px;
+  min-block-size: 40px;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--rayon-rond);
+  background: color-mix(in srgb, var(--fond-eleve) 80%, transparent);
+  border: 1px solid var(--bordure);
+  color: var(--texte-doux);
+  box-shadow: var(--elevation-1);
+  backdrop-filter: blur(6px);
+}
+
+.meta button[data-action='repondre'] {
+  inset-block-start: calc(var(--e-4) + 44px);
+}
+
+.mien .meta button[data-action='reagir'],
+.mien .meta button[data-action='repondre'] {
+  inset-inline-start: auto;
+  inset-inline-end: 100%;
+  margin-inline: 0 var(--e-1);
+}
+
+.meta button[data-action='reagir']::after,
+.meta button[data-action='repondre']::after {
+  inset: -4px; /* cible réelle 48 px pour une pastille peinte de 40 px */
+}
+
+.meta button[data-action='reagir']:hover,
+.meta button[data-action='repondre']:hover {
+  background: var(--fond-eleve);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Les actions sont masquées PAR DÉFAUT, y compris sur écran tactile — le
+   matériel réel des utilisateurs. Les laisser opaques y affichait vingt
+   pastilles flottantes pour dix messages. Sur tactile, un appui long pose
+   `.actions-ouvertes` (voir main.js) ; à la souris, le survol suffit. */
+.meta button[data-action='reagir'],
+.meta button[data-action='repondre'] {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+  transition:
+    opacity var(--duree-courte) var(--courbe-douce),
+    transform var(--duree-courte) var(--courbe-sortie);
+}
+
+.ligne-message.actions-ouvertes .meta button[data-action='reagir'],
+.ligne-message.actions-ouvertes .meta button[data-action='repondre'] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .meta button[data-action='reagir'],
+  .meta button[data-action='repondre'] {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.9);
+    pointer-events: none;
+    transition:
+      opacity var(--duree-courte) var(--courbe-douce),
+      transform var(--duree-courte) var(--courbe-sortie);
+  }
+
+  .mien .meta button[data-action='reagir'],
+  .mien .meta button[data-action='repondre'] {
+    transform: translateX(4px) scale(0.9);
+  }
+
+  .ligne-message:hover .meta button[data-action='reagir'],
+  .ligne-message:hover .meta button[data-action='repondre'],
+  .ligne-message:focus-within .meta button[data-action='reagir'],
+  .ligne-message:focus-within .meta button[data-action='repondre'] {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
+/* ---- Réactions ----------------------------------------------------------
+   La pastille chevauche la bulle. L'anneau à la couleur du fil la détache
+   proprement, quelle que soit la couleur de la bulle qu'elle recouvre. */
+.reactions {
+  display: flex;
+  gap: var(--e-1);
+  flex-wrap: wrap;
+  margin-block-start: calc(var(--e-3) * -1);
+  padding-inline: var(--e-4);
+  position: relative;
+  z-index: 1;
+}
+
+.reaction {
+  position: relative;
+  min-block-size: 34px;
+  padding: var(--e-0) var(--e-3);
+  border-radius: var(--rayon-rond);
+  background: var(--fond-eleve);
+  border: 1px solid var(--bordure);
+  box-shadow: 0 0 0 2px var(--fond-fil), var(--elevation-1);
+  color: var(--texte);
+  font-size: var(--texte-s);
+  font-weight: var(--graisse-moyenne);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Même correctif de cible que `.discret` : 34 px peints, 48 px touchables. */
+.reaction::after {
+  content: '';
+  position: absolute;
+  inset-block: -7px;
+  inset-inline: 0;
+}
+
+.reaction:hover {
+  background: var(--accent-clair);
+  border-color: var(--accent);
+}
+
+.reaction.mienne {
+  background: var(--accent-clair);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Dans la barre de sélection d'emoji, les pastilles redeviennent de vraies
+   cibles carrées de 48 px : c'est un choix, pas un compteur. */
+.barre-reponse .reaction {
+  min-inline-size: var(--cible-min);
+  min-block-size: var(--cible-min);
+  box-shadow: none;
+  font-size: var(--texte-l);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   12. ZONE DE RÉDACTION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Grille plutôt que flex : à 390 px, le flex laissait le champ se faire
+   comprimer par les trois boutons, jusqu'à rogner le texte de substitution.
+   Ici la colonne du champ est la seule élastique, et son min-inline-size:0
+   l'autorise à passer sous sa largeur intrinsèque. */
+.composeur {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--e-2);
+  padding: var(--e-3);
+  padding-block-end: max(var(--e-3), env(safe-area-inset-bottom));
+  border-block-start: 1px solid var(--bordure);
+  background: var(--fond-eleve);
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--bordure) 50%, transparent);
+  flex-shrink: 0;
+}
+
+.composeur .bouton-icone {
+  color: var(--texte-doux);
+}
+
+.composeur .bouton-icone:hover {
+  color: var(--accent);
+}
+
+.composeur textarea {
+  min-inline-size: 0;
+  min-block-size: var(--cible-min);
+  max-block-size: 140px;
+  padding-block: var(--e-3);
+  resize: none;
+  border-radius: var(--rayon-xl);
+  background: var(--fond);
+  field-sizing: content; /* la hauteur suit le texte, sans JS ni rognage */
+  line-height: 1.4;
+}
+
+.composeur button[type='submit'] {
+  inline-size: var(--cible-min);
+  min-inline-size: var(--cible-min);
+  block-size: var(--cible-min);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--rayon-rond);
+  box-shadow: var(--elevation-1);
+}
+
+/* ---- Barre de réponse et d'enregistrement ---- */
+
+.barre-reponse,
+.enregistrement {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-2) var(--e-3);
+  background: var(--accent-clair);
+  border-block-start: 1px solid var(--bordure);
+  font-size: var(--texte-s);
+  flex-shrink: 0;
+  animation: entree-barre var(--duree-courte) var(--courbe-sortie) both;
+}
+
+.barre-reponse {
+  flex-wrap: wrap;
+}
+
+.barre-reponse > span {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--texte-doux);
+  border-inline-start: var(--e-0) solid var(--accent);
+  padding-inline-start: var(--e-3);
+}
+
+.pastille-enregistrement {
+  inline-size: 14px;
+  block-size: 14px;
+  flex-shrink: 0;
+  border-radius: var(--rayon-rond);
+  background: var(--danger);
+  animation: pulsation var(--duree-pouls) var(--courbe-douce) infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   13. BANDEAUX, LISTES, ÉTATS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.bandeau {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3) var(--e-4);
+  background: var(--accent-clair);
+  border-block-end: 1px solid var(--bordure);
+  font-size: var(--texte-s);
+  flex-shrink: 0;
+}
+
+.bandeau button {
+  min-block-size: var(--cible-min);
+  padding: var(--e-2) var(--e-4);
+  flex-shrink: 0;
+}
+
+.vide {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--e-3);
+  flex: 1;
+  padding: var(--e-7) var(--e-5);
+  text-align: center;
+  color: var(--texte-doux);
+  background: var(--fond-fil);
+}
+
+/* Le médaillon fermé : l'écran vide n'est pas un manque, c'est un objet au
+   repos. Même silhouette que l'icône de l'application — bélière comprise, d'où
+   le second pseudo-élément remonté par `order`. */
+.vide::after {
+  content: '';
+  order: -2;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--rayon-rond);
+  border: 3px solid var(--bordure-forte);
+  margin-block-end: -14px;
+  opacity: 0.7;
+}
+
+.vide::before {
+  content: '';
+  order: -1;
+  inline-size: 72px;
+  block-size: 96px;
+  border-radius: 50% / 46% 46% 54% 54%;
+  border: 3px solid var(--bordure-forte);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bordure-forte) 40%, transparent);
+  background: linear-gradient(
+    to right,
+    transparent calc(50% - 1.5px),
+    var(--bordure-forte) calc(50% - 1.5px),
+    var(--bordure-forte) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
+  );
+  opacity: 0.7;
+}
+
+.vide h3 {
+  margin: 0;
+  font-size: var(--texte-l);
+  color: var(--texte);
+  max-inline-size: 22ch;
+}
+
+.vide p {
+  margin: 0;
+  max-inline-size: 32ch;
+}
+
+.liste-appareils {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.liste-appareils li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding-block: var(--e-3);
+  border-block-end: 1px solid var(--bordure);
+}
+
+.liste-appareils li:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+}
+
+.liste-appareils li > div {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* Le libellé d'appareil est le seul élément élastique de la ligne : le bouton
+   d'action ne doit ni rétrécir ni couper son verbe. */
+.liste-appareils li > button,
+.liste-appareils li > .etiquette {
+  flex-shrink: 0;
+  padding-inline: var(--e-4);
+}
+
+.etiquette {
+  display: inline-block;
+  padding: var(--e-0) var(--e-3);
+  border-radius: var(--rayon-rond);
+  font-size: var(--texte-xs);
+  font-weight: var(--graisse-forte);
+  letter-spacing: 0.03em;
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+.etiquette.actif {
+  background: color-mix(in srgb, var(--succes) 16%, var(--fond-eleve));
+  color: var(--succes);
+}
+
+.etiquette.attente {
+  background: var(--accent-clair);
+  color: var(--accent);
+}
+
+/* ---- Chargement : un squelette, pas un mot seul au milieu du vide ----- */
+.chargement {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--e-4);
+  flex: 1;
+  padding: var(--e-6);
+  color: var(--texte-doux);
+  font-size: var(--texte-s);
+}
+
+.chargement::before {
+  content: '';
+  inline-size: 64px;
+  block-size: 84px;
+  border-radius: 50% / 46% 46% 54% 54%;
+  background:
+    linear-gradient(
+        100deg,
+        transparent 20%,
+        color-mix(in srgb, var(--fond-eleve) 70%, transparent) 50%,
+        transparent 80%
+      )
+      0 0 / 220% 100% no-repeat,
+    var(--fond-doux);
+  animation: balayage var(--duree-boucle) var(--courbe-douce) infinite;
+}
+
+.chargement p {
+  margin: 0;
+  animation: respiration calc(var(--duree-boucle) * 1.25) var(--courbe-douce) infinite;
+}
+
+.visuellement-cache {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   14. MOUVEMENT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes entree-bulle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes entree-ligne {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes entree-ecran {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes entree-barre {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pulsation {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes balayage {
+  to {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes respiration {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Le vestibulaire ne se négocie pas : si le système demande moins de
+   mouvement, il ne reste que les changements d'opacité les plus courts. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .pastille-enregistrement,
+  .chargement::before,
+  .chargement p {
+    animation: none;
+  }
+
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   15. GRAND ÉCRAN
+   Au-delà de 900 px, la colonne ne flotte plus dans le vide : elle devient un
+   objet posé — un médaillon ouvert sur une table.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 900px) {
+  body {
+    /* Le fond doit être nettement plus sourd que la colonne, sans quoi le
+       « cadre » ne cadre rien. Teinté avec la couleur de texte, il reste dans
+       la même famille chaude. */
+    background:
+      radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%),
+      color-mix(in srgb, var(--texte) 14%, var(--fond-doux));
+    padding-block: var(--e-5);
+  }
+
+  #app {
+    block-size: calc(100dvh - var(--e-6));
+    border-radius: var(--rayon-xl);
+    border: 1px solid var(--bordure);
+    box-shadow: var(--elevation-3);
+  }
+
+  .entete {
+    padding-block-start: var(--e-2);
+  }
+}
+
+/* ---- Écran étroit ------------------------------------------------------
+   À 390 px, la gouttière d'actions et la bulle se disputent la largeur : on
+   rend 4 % à la gouttière pour que les deux pastilles y tiennent. */
+@media (max-width: 480px) {
+  .ligne-message {
+    max-inline-size: 74%;
+  }
+
+  /* Sur un écran de 390 px, 24 px de marge intérieure de chaque côté coûtent
+     un huitième de la largeur utile : les libellés d'appareils se coupaient. */
+  .carte,
+  .ecran-centre {
+    padding: var(--e-4);
+  }
+
+  .fil {
+    padding-inline: var(--e-2);
+  }
+
+  .composeur {
+    gap: var(--e-1);
+  }
+}

@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{# Coquille de l'application de messagerie.
+
+   Elle est volontairement vide : le fil de discussion ne peut pas être rendu
+   côté serveur, puisque les messages sont chiffrés et que le serveur ne détient
+   aucune clé. Le contenu apparaît après déchiffrement local. #}
+
+{% block title %}{{ instance_name }}{% endblock %}
+
+{% block javascripts %}
+    {{ vite_entry('app') }}
+{% endblock %}
+
+{% block body %}
+    <div id="app" data-instance-name="{{ instance_name }}">
+        <div class="chargement">
+            <p>Chargement…</p>
+        </div>
+    </div>
+
+    <noscript>
+        <div class="ecran-centre">
+            <div class="carte">
+                <h1>JavaScript est nécessaire</h1>
+                <p>
+                    Locket chiffre et déchiffre vos messages directement dans votre
+                    navigateur. Sans JavaScript, ils resteraient illisibles.
+                </p>
+            </div>
+        </div>
+    </noscript>
+{% endblock %}
